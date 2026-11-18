@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: JagexOAuthManager.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Zero-Credential Jagex Account OAuth2 PKCE Authentication Engine.
 //          Implements RFC 7636 (Proof Key for Code Exchange) using Apple's
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Cryptographic Protocol Engineering:
+// Overview: Cryptographic Protocol Engineering:
 // ==============================================================================
 // In modern web and mobile security, "Zero-Credential Architecture" means a
 // third-party application NEVER asks for, handles, or stores the user's password.

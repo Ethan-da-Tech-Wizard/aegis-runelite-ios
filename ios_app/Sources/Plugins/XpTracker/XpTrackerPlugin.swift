@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: XpTrackerPlugin.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Real-Time Experience & Skill Progression Tracking Plugin for iOS.
 //          Listens to StatChangedEvent from EventBus, computes XP/hour rates,
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Telemetry Rate Calculations:
+// Overview: Telemetry Rate Calculations:
 // ==============================================================================
 // In telemetry tracking systems, calculating "rates of change over time"
 // (e.g. Speed = Distance / Time, XP/hour = XP_gained / Hours_elapsed) is a

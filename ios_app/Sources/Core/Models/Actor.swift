@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: Actor.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Dynamic Game Entity Protocol & Concrete Models (Player & NPC) for OSRS.
 //          Defines polymorphic protocols for combat entities, position tracking,
@@ -9,9 +8,9 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Object-Oriented Polymorphism:
+// Overview: Object-Oriented Polymorphism:
 // ==============================================================================
-// In object-oriented programming (CIS 156), polymorphism allows code to interact
+// In object-oriented programming, polymorphism allows code to interact
 // with diverse entity types through a unified interface.
 //
 // Protocol-Oriented Architecture:

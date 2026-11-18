@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: TileIndicatorsPlugin.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Ground Tile Highlighting Overlay Plugin for RuneLite Mobile iOS.
 //          Renders visual bounding quadrilaterals onto the 3D game surface to
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & 3D Spatial Indicators:
+// Overview: 3D Spatial Indicators:
 // ==============================================================================
 // In isometric and top-down games, player movement can feel ambiguous when
 // characters pathfind across irregular terrain.

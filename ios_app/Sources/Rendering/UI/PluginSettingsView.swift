@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: PluginSettingsView.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: SwiftUI Configuration & Jagex Account Authentication Modal View.
 //          Provides toggle controls for bundled plugins (Tile Indicators,
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & SwiftUI Form Architecture:
+// Overview: SwiftUI Form Architecture:
 // ==============================================================================
 // In modern mobile application architecture, user settings views are organized
 // into grouped visual sections using SwiftUI's `List` and `Section` containers.

@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: LocalPoint.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Fine-Grained 2D Coordinate Model within OSRS 104x104 Local Scene Chunk.
 //          Enables sub-tile positioning (128 fine units per tile), fine-grained
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Fixed-Point Sub-Tile Coordinates:
+// Overview: Fixed-Point Sub-Tile Coordinates:
 // ==============================================================================
 // In computer graphics and physics engines, entities move smoothly across tiles
 // rather than teleporting instantly from one integer tile to the next.

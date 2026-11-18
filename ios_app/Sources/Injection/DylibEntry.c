@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: DylibEntry.c
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Mach-O Dynamic Library Constructor & Destructor Lifecycle Hooks.
 //          Executes automatically when the injected RuneLiteOverlay.dylib is
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Dynamic Linker Lifecycle:
+// Overview: Dynamic Linker Lifecycle:
 // ==============================================================================
 // In low-level systems programming (C and operating systems), compiled dynamic
 // shared libraries (.dylib on macOS/iOS, .so on Linux, .dll on Windows) can define

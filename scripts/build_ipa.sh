@@ -2,7 +2,6 @@
 # ==============================================================================
 # Program: scripts/build_ipa.sh
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Standalone iOS RuneLite IPA Packaging Tool.
 #          Compiles the native Swift/Metal project into a signed or unsigned
@@ -11,7 +10,7 @@
 # ==============================================================================
 
 # ==============================================================================
-# CIS 156 Educational Overview — iOS Packaging Pipeline:
+# Overview — iOS Packaging Pipeline:
 # ==============================================================================
 # In Unix systems programming, shell scripts automate complex multi-stage
 # build processes.

@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: GameState.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Central Game Engine State Model and Tick Event Driver for OSRS.
 //          Maintains the 104x104 scene tile base, local player status, camera
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Game Engine Architecture:
+// Overview: Game Engine Architecture:
 // ==============================================================================
 // In video game programming, the "Game State" represents the complete snapshot
 // of everything currently existing and happening in the game world.

@@ -2,7 +2,6 @@
 // ==============================================================================
 // Program: Package.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Swift Package Manager (SPM) Manifest for RuneLiteMobile.
 //          Configures the build targets, platforms (iOS 16+), library products
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Swift Package Manager:
+// Overview: Swift Package Manager:
 // ==============================================================================
 // The Swift Package Manager (SPM) is Apple's official tool for managing the
 // distribution of Swift code. It is integrated directly with the Swift build

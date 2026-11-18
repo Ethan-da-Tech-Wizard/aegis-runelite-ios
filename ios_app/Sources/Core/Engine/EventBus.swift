@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: EventBus.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Decoupled Publish-Subscribe Event Dispatch Bus for RuneLite Mobile iOS.
 //          Enables game loop, network daemon, and touch pipeline to broadcast
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Publish-Subscribe (Pub/Sub) Pattern:
+// Overview: Publish-Subscribe (Pub/Sub) Pattern:
 // ==============================================================================
 // In software design patterns, the "Observer" or "Publish-Subscribe" pattern
 // establishes a one-to-many dependency between objects.

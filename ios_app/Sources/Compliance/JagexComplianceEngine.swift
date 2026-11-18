@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: JagexComplianceEngine.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Jagex Third-Party Client Compliance & Safety Enforcement Engine.
 //          Enforces Jagex's official published guidelines:
@@ -12,7 +11,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Anti-Cheat Compliance:
+// Overview: Anti-Cheat Compliance:
 // ==============================================================================
 // In online gaming and computer science, maintaining game integrity and fair play
 // requires proactive compliance enforcement. Jagex strictly regulates third-party

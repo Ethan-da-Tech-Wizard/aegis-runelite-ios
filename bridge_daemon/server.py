@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: bridge_daemon/server.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Zero-Credential Streaming & WebClip Server for iOS RuneLite.
 #          Hosts the standalone mobile HTML5 web application, exposes REST
@@ -12,7 +11,7 @@
 """bridge_daemon/server.py — Zero-Credential Streaming & WebClip Server for iOS RuneLite.
 
 ==============================================================================
-CIS 156 Educational Overview & Network Systems:
+Overview: Network Systems:
 ==============================================================================
 In introductory computer networking, the HyperText Transfer Protocol (HTTP)
 provides request-response messaging between clients (smartphones, browsers)
@@ -70,7 +69,7 @@ HTML_PATH: Path = Path(__file__).resolve().parent / "frontend" / "ios_runelite_w
 def get_local_ip() -> str:
     """Discover the primary local area network (LAN) IP address of this host machine.
 
-    In networking (CIS 156), computers often have multiple network interfaces
+    In networking, computers often have multiple network interfaces
     (loopback 127.0.0.1, ethernet eth0, Wi-Fi wlan0, and virtual bridges). To tell
     an iPhone user which URL to visit on their local Wi-Fi, we must determine the
     machine's outward-facing LAN IP.

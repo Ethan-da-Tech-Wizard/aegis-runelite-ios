@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: GroundItemsPlugin.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Ground Loot Highlighting and Economic Valuation Overlay Plugin.
 //          Renders color-coded text tags and contrast bounding boxes over dropped
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Economic Data Visualization:
+// Overview: Economic Data Visualization:
 // ==============================================================================
 // In multiplayer online games with complex trading economies, quickly identifying
 // valuable item drops among piles of clutter is essential for efficient gameplay.

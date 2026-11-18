@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: Shaders.metal
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Metal Shading Language (MSL) Vertex and Fragment Shaders for Overlays.
 //          Performs 2D pixel coordinate transformation to Normalized Device
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Shader Architecture:
+// Overview: Shader Architecture:
 // ==============================================================================
 // In modern GPU programming, "shaders" are small programs written in specialized
 // shading languages (here, Metal Shading Language / C++14 dialect) that execute

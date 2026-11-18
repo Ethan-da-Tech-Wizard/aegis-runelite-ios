@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: tests/test_build_ios_runelite_standalone.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Unit Test Suite for Standalone iOS RuneLite Builder.
 #          Verifies that building the standalone client generates valid HTML5
@@ -12,7 +11,7 @@
 """tests/test_build_ios_runelite_standalone.py — Tests for Standalone iOS RuneLite Builder.
 
 ==============================================================================
-CIS 156 Educational Overview & Test Verification:
+Overview: Test Verification:
 ==============================================================================
 In this test file, we verify the integrity of the standalone build process:
 1. Artifact Existence: Confirms that `runelite_mobile.html` and `RuneLite.mobileconfig`

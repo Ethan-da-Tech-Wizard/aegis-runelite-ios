@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: PluginHubView.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: In-App RuneLite Plugin Hub Browser & Package Manager for iOS.
 //          Allows players to search, filter by category tags, install, toggle,
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Filtered List Architectures:
+// Overview: Filtered List Architectures:
 // ==============================================================================
 // In user interface development, providing fluid search and category filtering
 // over structured data collections is a standard programming requirement.

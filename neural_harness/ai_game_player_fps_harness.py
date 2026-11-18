@@ -2,7 +2,6 @@
 # ==============================================================================
 # Program: neural_harness/ai_game_player_fps_harness.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: HOWITZER-017 Interactive AI Game Player & FPS Benchmarking Harness.
 #          Provides hermetic offscreen SDL dummy rendering, optical character
@@ -16,7 +15,7 @@ Virtual Keyboard/Mouse Controller & Live FPS/Frame-Time Rating Harness
 (`scripts/ai_game_player_fps_harness.py`).
 
 ==============================================================================
-CIS 156 Educational Overview & Game Performance Benchmarking:
+Overview: Game Performance Benchmarking:
 ==============================================================================
 In computer graphics and game engine engineering, simply measuring "Average FPS"
 (Frames Per Second) is insufficient to describe whether a game feels smooth.

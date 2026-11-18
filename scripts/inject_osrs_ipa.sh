@@ -2,7 +2,6 @@
 # ==============================================================================
 # Program: scripts/inject_osrs_ipa.sh
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Dynamic Library (dylib) Injection Pipeline for Official OSRS Client.
 #          Unpacks a decrypted Old School RuneScape IPA, stages RuneLiteOverlay.dylib
@@ -11,7 +10,7 @@
 # ==============================================================================
 
 # ==============================================================================
-# CIS 156 Educational Overview — Dynamic Linker & Mach-O Injection:
+# Overview — Dynamic Linker & Mach-O Injection:
 # ==============================================================================
 # In operating systems (macOS/iOS), the dynamic linker (`dyld`) reads headers in
 # compiled Mach-O binary executables to determine which shared dynamic libraries (.dylib)

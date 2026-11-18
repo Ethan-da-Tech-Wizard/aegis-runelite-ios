@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: tests/test_bridge_daemon.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Unit Test Suite for Aegis RuneLite iOS Bridge Daemon.
 #          Validates the headless simulation tick loop, overlay batch production,
@@ -12,7 +11,7 @@
 """tests/test_bridge_daemon.py — Test suite for Aegis RuneLite iOS Bridge Daemon.
 
 ==============================================================================
-CIS 156 Educational Overview & Test-Driven Development (TDD):
+Overview: Test-Driven Development (TDD):
 ==============================================================================
 In computer science, unit testing verifies that individual components (units) of
 source code perform their intended tasks correctly in isolation.

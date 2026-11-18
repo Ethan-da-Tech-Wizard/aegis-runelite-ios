@@ -2,7 +2,6 @@
 # ==============================================================================
 # Program: scripts/build_sidestore_package.sh
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Packages RuneLiteMobile into an optimized .ipa for SideStore sideloading.
 #          Enables 100% free, zero-Apple-Developer-Account installation with
@@ -10,7 +9,7 @@
 # ==============================================================================
 
 # ==============================================================================
-# CIS 156 Educational Overview — SideStore Architecture:
+# Overview — SideStore Architecture:
 # ==============================================================================
 # Apple requires non-developer iOS apps to be re-signed every 7 days.
 # SideStore solves this without a Mac or PC by running a local loopback VPN

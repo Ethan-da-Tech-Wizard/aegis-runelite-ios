@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: PluginProtocol.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Core Plugin Protocol & Metal Render Context Architecture.
 //          Defines standard lifecycle hooks (startUp, shutDown), hardware Metal
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Protocol-Based Architecture:
+// Overview: Protocol-Based Architecture:
 // ==============================================================================
 // In software engineering, defining clean protocols enables modular extensibility.
 //

@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: MetalHook.m
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Objective-C Runtime Method Swizzling & Metal Injection Bridge.
 //          Intercepts UIKit window presentation to inject a transparent
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Dynamic Runtime Interception:
+// Overview: Dynamic Runtime Interception:
 // ==============================================================================
 // In computer systems programming on Apple platforms, Objective-C features a
 // dynamic messaging runtime (`objc_msgSend`).

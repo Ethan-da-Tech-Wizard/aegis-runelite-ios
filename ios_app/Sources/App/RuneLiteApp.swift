@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: RuneLiteApp.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Root SwiftUI View Interface for RuneLite Mobile iOS.
 //          Provides declarative user interface components that overlay
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & SwiftUI Declarative UI:
+// Overview: SwiftUI Declarative UI:
 // ==============================================================================
 // In modern iOS development, SwiftUI allows developers to construct user interfaces
 // declaratively: instead of imperatively manipulating views with step-by-step

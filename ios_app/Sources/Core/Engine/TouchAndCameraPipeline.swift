@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: TouchAndCameraPipeline.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: 1:1 Authentic OSRS Mobile Touch & Camera Gesture Pipeline.
 //          Implements genuine mobile touch mechanics:
@@ -13,7 +12,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Human-Computer Interaction (HCI):
+// Overview: Human-Computer Interaction (HCI):
 // ==============================================================================
 // In mobile systems design, mapping physical gestures onto 3D game cameras
 // and point-and-click interactions requires careful state machine modeling.

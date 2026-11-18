@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: neural_harness/__init__.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Public interface package initializer for the Neural Game Player
 #          and Latency Benchmark Suite. Exports core simulator classes, safety
@@ -11,12 +10,12 @@
 """Aegis RuneLite iOS - Neural Gamer FPS & Latency Benchmark Harness.
 
 ==============================================================================
-CIS 156 Educational Architecture Overview:
+Architecture overview:
 ==============================================================================
 This module serves as the primary public interface and package initializer for
 the Neural Game Player and Benchmark Suite.
 
-In introductory computer science (CIS 156), package initialization files
+In introductory computer science, package initialization files
 (`__init__.py`) define what external programs see when they import a package.
 By explicitly importing and specifying `__all__`, we provide a clean, secure,
 and well-documented Application Programming Interface (API).

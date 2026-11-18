@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: neural_harness/hid_safety.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Physical Hardware HID Activity Probe & Offscreen Safety Guard.
 #          Monitors hardware interrupt lines, USB request block counters,
@@ -12,7 +11,7 @@
 """neural_harness/hid_safety.py — Physical Hardware HID Activity Probe & Offscreen Safety Guard.
 
 ==============================================================================
-CIS 156 Educational Overview & Motivation:
+Overview: Motivation:
 ==============================================================================
 In computer systems, "HID" stands for Human Interface Device (keyboards, mice,
 gamepads, and touchscreens). When building automated benchmarking suites or
@@ -47,7 +46,7 @@ STATE_FILE: Path = Path("/tmp") / "hid_idle_state.json"
 def probe_linux_hardware_hid_idle_seconds() -> float:
     """Probe hardware interrupts, USB traffic, and cursor metrics to calculate idle time.
 
-    In CIS 156, we learn about polling state vs. event-driven notifications. Here,
+    Here we cover polling state vs. event-driven notifications. Here,
     we poll hardware activity indicators exposed by the operating system kernel.
     By aggregating interrupt numbers and USB URB counts into a consolidated
     "signature", any delta between probes indicates that physical user input
