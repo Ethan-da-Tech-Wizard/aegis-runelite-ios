@@ -1,0 +1,229 @@
+//
+//  OverlayViewController.swift
+//  RuneLiteMobile
+//
+//  Created for iOS Standalone RuneLite Client Architecture.
+//  Copyright © 2026 TWU LLC. All rights reserved.
+//
+
+import UIKit
+import MetalKit
+import SwiftUI
+
+/// Main container view controller hosting the game view, 1:1 touch interaction engine,
+/// and transparent Metal overlay with 120Hz ProMotion support.
+public final class OverlayViewController: UIViewController, TouchAndCameraDelegate {
+    private var metalView: MTKView!
+    private var settingsButton: UIButton!
+    private var compassButton: UIButton!
+    private var simulatedTickTimer: Timer?
+    private var activeContextMenu: UIView?
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        view.isMultipleTouchEnabled = true
+
+        setupMetalOverlay()
+        setupFloatingControls()
+        setupPinchGesture()
+        registerDefaultPlugins()
+        startSimulatedTelemetry()
+
+        TouchAndCameraPipeline.shared.delegate = self
+    }
+
+    private func setupMetalOverlay() {
+        guard let device = MetalOverlayRenderer.shared.device else {
+            print("❌ [OverlayViewController] Metal device unavailable")
+            return
+        }
+
+        metalView = MTKView(frame: view.bounds, device: device)
+        metalView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        metalView.delegate = MetalOverlayRenderer.shared
+        metalView.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        metalView.isOpaque = false
+        metalView.backgroundColor = .clear
+
+        // Enable 120Hz ProMotion when supported by iPhone hardware
+        if UIScreen.main.maximumFramesPerSecond >= 120 {
+            metalView.preferredFramesPerSecond = 120
+        } else {
+            metalView.preferredFramesPerSecond = 60
+        }
+
+        metalView.isUserInteractionEnabled = false // Passes touches to container view controller
+        view.addSubview(metalView)
+    }
+
+    private func setupFloatingControls() {
+        let safeArea = view.safeAreaInsets
+
+        // Settings Button (Gear icon)
+        settingsButton = UIButton(type: .system)
+        settingsButton.frame = CGRect(x: 20, y: max(44, safeArea.top + 10), width: 44, height: 44)
+        settingsButton.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        settingsButton.layer.cornerRadius = 22
+        settingsButton.setImage(UIImage(systemName: "gearshape.fill"), for: .normal)
+        settingsButton.tintColor = .white
+        settingsButton.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
+        view.addSubview(settingsButton)
+
+        // Compass Button (Tap to face North)
+        compassButton = UIButton(type: .system)
+        compassButton.frame = CGRect(x: 74, y: max(44, safeArea.top + 10), width: 44, height: 44)
+        compassButton.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        compassButton.layer.cornerRadius = 22
+        compassButton.setImage(UIImage(systemName: "location.north.fill"), for: .normal)
+        compassButton.tintColor = .systemRed
+        compassButton.addTarget(self, action: #selector(resetCameraNorth), for: .touchUpInside)
+        view.addSubview(compassButton)
+    }
+
+    private func setupPinchGesture() {
+        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        view.addGestureRecognizer(pinch)
+    }
+
+    @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
+        if recognizer.state == .changed {
+            TouchAndCameraPipeline.shared.handlePinchZoom(scaleDelta: recognizer.scale)
+            recognizer.scale = 1.0
+        }
+    }
+
+    private func registerDefaultPlugins() {
+        let pm = PluginManager.shared
+        pm.register(plugin: TileIndicatorsPlugin())
+        pm.register(plugin: GroundItemsPlugin())
+        pm.register(plugin: XpTrackerPlugin())
+        pm.register(plugin: IdleNotifierPlugin())
+        pm.register(plugin: MenuEntrySwapperPlugin())
+    }
+
+    private func startSimulatedTelemetry() {
+        // Runs periodic tick event every 600ms (standard OSRS server tick)
+        simulatedTickTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { _ in
+            GameState.shared.onTick()
+            // Dispatch tick to sandboxed plugins
+            SandboxedRuntime.shared.dispatchGameTick(tick: GameState.shared.tickCount)
+        }
+    }
+
+    @objc private func openSettings() {
+        let settingsView = PluginSettingsView()
+        let hostingController = UIHostingController(rootView: settingsView)
+        present(hostingController, animated: true)
+    }
+
+    @objc private func resetCameraNorth() {
+        TouchAndCameraPipeline.shared.resetCameraToNorth()
+    }
+
+    // MARK: - Touch Handling (1:1 Jagex Touch Compliance + OSRS Mobile Gestures)
+
+    public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        dismissContextMenu()
+        for touch in touches {
+            _ = JagexComplianceEngine.shared.validateTouchEvent(touch)
+        }
+        TouchAndCameraPipeline.shared.handleTouchesBegan(touches, in: view)
+        super.touchesBegan(touches, with: event)
+    }
+
+    public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        TouchAndCameraPipeline.shared.handleTouchesMoved(touches, in: view)
+        super.touchesMoved(touches, with: event)
+    }
+
+    public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        TouchAndCameraPipeline.shared.handleTouchesEnded(touches, in: view)
+        super.touchesEnded(touches, with: event)
+    }
+
+    public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        TouchAndCameraPipeline.shared.handleTouchesCancelled(touches, in: view)
+        super.touchesCancelled(touches, with: event)
+    }
+
+    // MARK: - TouchAndCameraDelegate
+
+    public func didTriggerClickMarker(at point: CGPoint, type: ClickMarkerType) {
+        showClickAnimation(at: point, color: type == .redX ? .red : .yellow)
+    }
+
+    public func didTriggerContextMenu(at point: CGPoint, worldPoint: WorldPoint) {
+        showContextMenu(at: point, worldPoint: worldPoint)
+    }
+
+    public func didUpdateCamera(yaw: Int, pitch: Int, zoom: Int) {
+        // Update compass icon rotation
+        let angleRadians = Double(yaw) / 2048.0 * (2.0 * .pi)
+        compassButton.transform = CGAffineTransform(rotationAngle: CGFloat(-angleRadians))
+    }
+
+    // MARK: - Visual Click Markers & Context Menu
+
+    private func showClickAnimation(at point: CGPoint, color: UIColor) {
+        let marker = UIView(frame: CGRect(x: point.x - 12, y: point.y - 12, width: 24, height: 24))
+        marker.layer.borderColor = color.cgColor
+        marker.layer.borderWidth = 3.0
+        marker.layer.cornerRadius = 4.0
+        marker.alpha = 1.0
+        marker.transform = CGAffineTransform(rotationAngle: .pi / 4)
+        view.addSubview(marker)
+
+        UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseOut, animations: {
+            marker.alpha = 0.0
+            marker.transform = CGAffineTransform(scaleX: 1.6, y: 1.6).rotated(by: .pi / 4)
+        }) { _ in
+            marker.removeFromSuperview()
+        }
+    }
+
+    private func showContextMenu(at point: CGPoint, worldPoint: WorldPoint) {
+        dismissContextMenu()
+
+        let menu = UIView()
+        menu.backgroundColor = UIColor(white: 0.1, alpha: 0.95)
+        menu.layer.cornerRadius = 8
+        menu.layer.borderWidth = 1.0
+        menu.layer.borderColor = UIColor.systemGray.cgColor
+        menu.clipsToBounds = true
+
+        let titleLabel = UILabel(frame: CGRect(x: 12, y: 8, width: 180, height: 20))
+        titleLabel.text = "Choose Option"
+        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        titleLabel.textColor = .systemYellow
+        menu.addSubview(titleLabel)
+
+        let walkButton = UIButton(type: .system)
+        walkButton.frame = CGRect(x: 12, y: 32, width: 180, height: 30)
+        walkButton.contentHorizontalAlignment = .leading
+        walkButton.setTitle("Walk here", for: .normal)
+        walkButton.setTitleColor(.white, for: .normal)
+        walkButton.addTarget(self, action: #selector(dismissContextMenu), for: .touchUpInside)
+        menu.addSubview(walkButton)
+
+        let cancelBtn = UIButton(type: .system)
+        cancelBtn.frame = CGRect(x: 12, y: 64, width: 180, height: 30)
+        cancelBtn.contentHorizontalAlignment = .leading
+        cancelBtn.setTitle("Cancel", for: .normal)
+        cancelBtn.setTitleColor(.lightGray, for: .normal)
+        cancelBtn.addTarget(self, action: #selector(dismissContextMenu), for: .touchUpInside)
+        menu.addSubview(cancelBtn)
+
+        let menuX = min(max(10, point.x - 20), view.bounds.width - 210)
+        let menuY = min(max(60, point.y - 40), view.bounds.height - 110)
+        menu.frame = CGRect(x: menuX, y: menuY, width: 200, height: 100)
+
+        view.addSubview(menu)
+        activeContextMenu = menu
+    }
+
+    @objc private func dismissContextMenu() {
+        activeContextMenu?.removeFromSuperview()
+        activeContextMenu = nil
+    }
+}

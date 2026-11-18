@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RuneLite">
+  <meta name="theme-color" content="#121212">
+  <title>RuneLite Mobile (Standalone iOS Client)</title>
+  <style>
+    :root {
+      --osrs-bg: #1c1815;
+      --osrs-stone: #2e2824;
+      --osrs-border: #4a4039;
+      --osrs-gold: #ff981f;
+      --osrs-cyan: #00ffff;
+      --osrs-green: #00ff00;
+      --osrs-yellow: #ffff00;
+      --osrs-red: #ff3333;
+      --osrs-text: #ffffff;
+      --rl-cyan: #00d2ff;
+      --rl-purple: #9c27b0;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000000;
+      color: var(--osrs-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      position: fixed;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+    }
+
+    /* OSRS Top Bar & Minimap */
+    #topBar {
+      position: absolute;
+      top: env(safe-area-inset-top, 8px);
+      left: env(safe-area-inset-left, 8px);
+      right: env(safe-area-inset-right, 8px);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .hud-element {
+      pointer-events: auto;
+    }
+
+    /* XP Globes along top left */
+    #xpGlobes {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+    }
+
+    .xp-globe {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #423b32, #1c1815);
+      border: 2px solid #5c4d3c;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: #ff981f;
+      position: relative;
+    }
+
+    .xp-globe .skill-icon {
+      font-size: 13px;
+    }
+
+    .xp-globe .skill-lvl {
+      font-size: 8px;
+      color: #00ff00;
+      line-height: 1;
+    }
+
+    /* Top Right Minimap & Status Orbs */
+    #minimapCluster {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    #minimapContainer {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 3px solid #4a3e2e;
+      background: #111a14;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.8);
+    }
+
+    #minimapCanvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    #compass {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(30, 26, 22, 0.85);
+      border: 1px solid #7c6850;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: #ff3333;
+      transform-origin: center center;
+    }
+
+    /* Orbs: HP, Prayer, Run */
+    .orbs-row {
+      display: flex;
+      gap: 6px;
+      margin-top: -8px;
+      padding-right: 4px;
+    }
+
+    .osrs-orb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1e1915;
+      border: 2px solid #5a4b3a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      cursor: pointer;
+    }
+
+    .osrs-orb.hp { border-color: #2e7d32; }
+    .osrs-orb.prayer { border-color: #0288d1; }
+    .osrs-orb.run { border-color: #f57f17; }
+    .osrs-orb.run.active { background: #5d4037; border-color: #ffeb3b; }
+
+    /* Side Stones (Bottom Right on Mobile) */
+    #sideStonesContainer {
+      position: absolute;
+      bottom: env(safe-area-inset-bottom, 8px);
+      right: env(safe-area-inset-right, 8px);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .stone-panel {
+      pointer-events: auto;
+      width: 210px;
+      background: rgba(30, 26, 22, 0.94);
+      border: 2px solid #5c4d3c;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .stone-panel.visible {
+      display: flex;
+    }
+
+    .panel-header {
+      background: #241e19;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #4a3e2e;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--osrs-gold);
+    }
+
+    /* Inventory Grid: 4 x 7 = 28 slots */
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 8px;
+      background: #1c1815;
+    }
+
+    .inv-slot {
+      aspect-ratio: 1;
+      background: rgba(46, 40, 36, 0.7);
+      border: 1px solid #3d342d;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      position: relative;
+    }
+
+    .inv-slot .qty {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      font-size: 8px;
+      font-weight: 700;
+      color: #ffff00;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    /* Prayers Grid */
+    .prayers-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 8px;
+    }
+
+    .prayer-slot {
+      aspect-ratio: 1;
+      background: #2b241e;
+      border: 1px solid #4a3e2e;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px;
+      text-align: center;
+    }
+
+    .prayer-slot.active {
+      background: #1b3d4f;
+      border-color: #00d2ff;
+      box-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
+    }
+
+    .prayer-slot .icon {
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+
+    .prayer-slot .name {
+      font-size: 8px;
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+
+    /* RuneLite Plugins Panel */
+    .plugins-list {
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .plugin-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 6px;
+      background: #25201b;
+      border: 1px solid #3d342d;
+      border-radius: 4px;
+      font-size: 10px;
+    }
+
+    .plugin-row .title {
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 28px;
+      height: 16px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #4a3e2e;
+      transition: .2s;
+      border-radius: 16px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #238636;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(12px);
+    }
+
+    .hub-open-btn {
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: #00d2ff;
+      color: #0b1e28;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .hub-open-btn:active {
+      background: #7ee787;
+    }
+
+    /* Plugin Hub Full Modal */
+    #pluginHubModal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 8, 7, 0.95);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      pointer-events: auto;
+    }
+    #pluginHubModal.visible {
+      display: flex;
+    }
+    .hub-header {
+      padding: 12px 16px;
+      background: #1c1815;
+      border-bottom: 2px solid #4a3e2e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hub-header h2 {
+      font-size: 15px;
+      color: var(--osrs-gold);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hub-close-btn {
+      background: #2b241e;
+      border: 1px solid #5a4b3d;
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .hub-search-bar {
+      padding: 8px 16px;
+      background: #241e19;
+      display: flex;
+      gap: 8px;
+    }
+    .hub-search-bar input {
+      flex: 1;
+      padding: 6px 10px;
+      background: #151210;
+      border: 1px solid #4a3e2e;
+      border-radius: 4px;
+      color: #ffffff;
+      font-size: 12px;
+      outline: none;
+    }
+    .hub-categories {
+      padding: 6px 16px;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      background: #1e1915;
+      border-bottom: 1px solid #383029;
+    }
+    .hub-cat-pill {
+      padding: 4px 10px;
+      background: #2b241e;
+      border: 1px solid #4a3e2e;
+      border-radius: 12px;
+      font-size: 10px;
+      color: #b0a495;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .hub-cat-pill.active {
+      background: #00d2ff;
+      color: #0b1e28;
+      font-weight: 700;
+      border-color: #00d2ff;
+    }
+    .hub-plugin-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .hub-card {
+      background: #221c18;
+      border: 1px solid #4a3e2e;
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hub-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hub-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .hub-card-author {
+      font-size: 10px;
+      color: #9e8e7a;
+    }
+    .hub-card-desc {
+      font-size: 11px;
+      color: #cccccc;
+      line-height: 1.3;
+    }
+    .hub-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .hub-install-btn {
+      padding: 4px 12px;
+      background: #238636;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .hub-install-btn.installed {
+      background: #4a3e2e;
+      color: #7ee787;
+    }
+
+    /* Stones Selector Bar (Tabs along bottom right) */
+    #stoneTabs {
+      pointer-events: auto;
+      display: flex;
+      gap: 4px;
+      background: rgba(22, 19, 16, 0.9);
+      border: 1px solid #4a3e2e;
+      padding: 4px;
+      border-radius: 6px;
+    }
+
+    .stone-tab {
+      width: 36px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      background: #2b241e;
+      border: 1px solid #4a3e2e;
+      border-radius: 4px;
+      color: #9e8e7a;
+      cursor: pointer;
+    }
+
+    .stone-tab.active {
+      background: #42362b;
+      border-color: var(--osrs-gold);
+      color: #ffffff;
+    }
+
+    /* OSRS Right Click Context Menu (Triggered by Long-Press) */
+    #osrsContextMenu {
+      position: absolute;
+      display: none;
+      flex-direction: column;
+      background: #2b2521;
+      border: 2px solid #5a4b3d;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.9);
+      z-index: 100;
+      min-width: 140px;
+      border-radius: 2px;
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    .menu-header {
+      background: #1c1714;
+      color: var(--osrs-gold);
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-bottom: 1px solid #4a3e2e;
+    }
+
+    .menu-option {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid #383029;
+      cursor: pointer;
+    }
+
+    .menu-option:active {
+      background: #42372d;
+    }
+
+    .menu-option .verb {
+      color: var(--osrs-cyan);
+    }
+
+    .menu-option .noun {
+      color: var(--osrs-text);
+    }
+
+    .menu-option.cancel {
+      color: #a89f91;
+    }
+
+    /* Status Bar Overlays (Left Screen Edge) */
+    #statusBars {
+      position: absolute;
+      top: 50%;
+      left: env(safe-area-inset-left, 8px);
+      transform: translateY(-50%);
+      display: flex;
+      gap: 6px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .osrs-bar {
+      width: 14px;
+      height: 120px;
+      background: rgba(20, 20, 20, 0.85);
+      border: 1px solid #3d342d;
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column-reverse;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .osrs-bar .fill {
+      width: 100%;
+      transition: height 0.2s;
+    }
+
+    .osrs-bar.hp-bar .fill { background: #2e7d32; }
+    .osrs-bar.prayer-bar .fill { background: #0288d1; }
+
+    .osrs-bar .icon {
+      position: absolute;
+      top: 2px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 8px;
+      color: #ffffff;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    /* Floating XP Drops */
+    .xp-drop-container {
+      position: absolute;
+      top: 60px;
+      right: 140px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 4px;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    .xp-drop {
+      font-size: 13px;
+      font-weight: 800;
+      color: #00d2ff;
+      text-shadow: 1px 1px 2px #000, 0 0 6px rgba(0, 210, 255, 0.8);
+      animation: floatUp 1.2s forwards ease-out;
+    }
+
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+      20% { opacity: 1; transform: translateY(0) scale(1.05); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-30px); }
+    }
+
+    /* Click Crosshair Animation */
+    .click-crosshair {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+      z-index: 50;
+      transform: translate(-50%, -50%);
+    }
+
+    .click-crosshair.yellow {
+      border: 2px solid #ffff00;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #ffff00;
+      animation: crosshairPop 0.35s forwards;
+    }
+
+    .click-crosshair.red {
+      border: 2px solid #ff3333;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #ff3333;
+      animation: crosshairPop 0.35s forwards;
+    }
+
+    @keyframes crosshairPop {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.9; }
+      100% { transform: translate(-50%, -50%) scale(1.0); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fullscreen 3D Isometric Game Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Status Bars (Hitpoints & Prayer) -->
+  <div id="statusBars">
+    <div class="osrs-bar hp-bar">
+      <div id="hpFill" class="fill" style="height: 99%;"></div>
+      <div class="icon">❤️</div>
+    </div>
+    <div class="osrs-bar prayer-bar">
+      <div id="prayerFill" class="fill" style="height: 99%;"></div>
+      <div class="icon">✨</div>
+    </div>
+  </div>
+
+  <!-- Top Bar: XP Globes + Minimap -->
+  <div id="topBar">
+    <div id="xpGlobes" class="hud-element">
+      <div class="xp-globe">
+        <span class="skill-icon">⚔️</span>
+        <span class="skill-lvl">99</span>
+      </div>
+      <div class="xp-globe">
+        <span class="skill-icon">🛡️</span>
+        <span class="skill-lvl">99</span>
+      </div>
+      <div class="xp-globe">
+        <span class="skill-icon">🏹</span>
+        <span class="skill-lvl">99</span>
+      </div>
+      <div class="xp-globe">
+        <span class="skill-icon">✨</span>
+        <span class="skill-lvl">99</span>
+      </div>
+    </div>
+
+    <div id="minimapCluster" class="hud-element">
+      <div id="minimapContainer">
+        <canvas id="minimapCanvas" width="110" height="110"></canvas>
+        <div id="compass">N</div>
+      </div>
+      <div class="orbs-row">
+        <div class="osrs-orb hp" id="hpOrb">99</div>
+        <div class="osrs-orb prayer" id="prayerOrb">99</div>
+        <div class="osrs-orb run active" id="runOrb">100</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating XP Drops Container -->
+  <div class="xp-drop-container" id="xpDropContainer"></div>
+
+  <!-- Side Panels & Stones -->
+  <div id="sideStonesContainer">
+    <!-- Inventory Panel (28 Slots) -->
+    <div id="inventoryPanel" class="stone-panel visible">
+      <div class="panel-header">
+        <span>Inventory (28/28)</span>
+        <span style="font-size: 10px; color: #a89f91;">Tap to Use</span>
+      </div>
+      <div class="inventory-grid" id="inventoryGrid"></div>
+    </div>
+
+    <!-- Prayer Panel -->
+    <div id="prayerPanel" class="stone-panel">
+      <div class="panel-header">
+        <span>Prayer Book</span>
+        <span id="prayerPointsText" style="color: #00ffff;">99 / 99</span>
+      </div>
+      <div class="prayers-grid" id="prayerGrid"></div>
+    </div>
+
+    <!-- RuneLite Settings Panel -->
+    <div id="pluginPanel" class="stone-panel">
+      <div class="panel-header">
+        <span>RuneLite Mobile Plugins</span>
+        <span style="color: #7ee787;">Standalone</span>
+      </div>
+      <div class="plugins-list" id="pluginList"></div>
+      <div style="padding: 6px 8px; border-top: 1px solid #4a3e2e;">
+        <button class="hub-open-btn" id="openPluginHubBtn" style="width: 100%;">
+          <span>🌐</span> Explore Official Plugin Hub
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plugin Hub Browser Modal -->
+  <div id="pluginHubModal">
+    <div class="hub-header">
+      <h2><span>🌐</span> RuneLite Plugin Hub</h2>
+      <button class="hub-close-btn" id="closePluginHubBtn">✕ Close</button>
+    </div>
+    <div class="hub-search-bar">
+      <input type="text" id="hubSearchInput" placeholder="Search official RuneLite plugins (e.g. Loot, Quest, Timers)...">
+    </div>
+    <div class="hub-categories" id="hubCategories">
+      <div class="hub-cat-pill active" data-cat="all">All</div>
+      <div class="hub-cat-pill" data-cat="pvm">PvM</div>
+      <div class="hub-cat-pill" data-cat="skilling">Skilling</div>
+      <div class="hub-cat-pill" data-cat="utility">Utility</div>
+      <div class="hub-cat-pill" data-cat="quests">Quests</div>
+    </div>
+    <div class="hub-plugin-list" id="hubPluginList"></div>
+  </div>
+
+    <!-- Stone Tabs (Bottom Row) -->
+    <div id="stoneTabs">
+      <div class="stone-tab active" data-tab="inventoryPanel" title="Inventory">🎒</div>
+      <div class="stone-tab" data-tab="prayerPanel" title="Prayer">✨</div>
+      <div class="stone-tab" data-tab="pluginPanel" title="RuneLite Plugins">⚙️</div>
+    </div>
+  </div>
+
+  <!-- OSRS Right-Click Long-Press Context Menu -->
+  <div id="osrsContextMenu">
+    <div class="menu-header">Choose Option</div>
+    <div id="contextMenuOptions"></div>
+  </div>
+
+  <script>
+    /**
+     * Standalone RuneLite Mobile Engine (100% Client-Side)
+     * Pure tap-to-move, long-press right-click, two-finger camera rotation/zoom.
+     * Zero servers, zero external data, 100% offline standalone.
+     */
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const minimapCanvas = document.getElementById("minimapCanvas");
+    const mctx = minimapCanvas.getContext("2d");
+
+    // High-DPI Canvas Resizing
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // Game Simulation State
+    const state = {
+      player: {
+        x: 15,
+        y: 15,
+        destX: 15,
+        destY: 15,
+        trueX: 15,
+        trueY: 15,
+        running: true,
+        hp: 99,
+        maxHp: 99,
+        prayer: 99,
+        maxPrayer: 99,
+        activeOverhead: null, // "protect_melee", etc.
+      },
+      camera: {
+        angle: 0,      // Yaw rotation in radians
+        pitch: 0.55,   // Pitch tilt
+        zoom: 36,      // Tile pixel size
+      },
+      npcs: [
+        { id: 1, name: "Guard", level: 21, x: 18, y: 14, hp: 22, maxHp: 22, color: "#00e676" },
+        { id: 2, name: "Man", level: 2, x: 12, y: 17, hp: 7, maxHp: 7, color: "#29b6f6" },
+        { id: 3, name: "Grand Exchange Clerk", level: 0, x: 15, y: 11, hp: 10, maxHp: 10, color: "#ab47bc" },
+        { id: 4, name: "Duck", level: 1, x: 20, y: 19, hp: 3, maxHp: 3, color: "#ffeb3b" },
+      ],
+      groundItems: [
+        { id: 101, name: "Rune scimitar", value: 15200, tier: "purple", x: 14, y: 16 },
+        { id: 102, name: "Abyssal whip", value: 1450000, tier: "beam", x: 16, y: 14 },
+        { id: 103, name: "Coins", value: 100000, tier: "orange", x: 17, y: 16 },
+        { id: 104, name: "Shark", value: 850, tier: "white", x: 13, y: 13 },
+      ],
+      plugins: {
+        groundItems: true,
+        tileIndicators: true,
+        trueTile: true,
+        npcIndicators: true,
+        statusBars: true,
+        xpDrops: true,
+      },
+      inventory: [
+        { name: "Abyssal whip", icon: "🗡️", qty: 1 },
+        { name: "Dragon defender", icon: "🛡️", qty: 1 },
+        { name: "Shark", icon: "🦈", qty: 10 },
+        { name: "Saradomin brew", icon: "🧪", qty: 4 },
+        { name: "Super restore", icon: "🧴", qty: 4 },
+        { name: "Super combat potion", icon: "🍷", qty: 2 },
+        { name: "Teleport to house", icon: "📜", qty: 50 },
+        { name: "Rune pouch", icon: "👝", qty: 1 },
+        { name: "Coins", icon: "🪙", qty: 5000000 },
+        { name: "Fire cape", icon: "🧣", qty: 1 },
+      ],
+      prayers: [
+        { id: "piety", name: "Piety", icon: "⚔️", active: false },
+        { id: "protect_melee", name: "Prot Melee", icon: "🛡️", active: false, overhead: "melee" },
+        { id: "protect_magic", name: "Prot Magic", icon: "🔮", active: false, overhead: "magic" },
+        { id: "protect_range", name: "Prot Range", icon: "🏹", active: false, overhead: "range" },
+        { id: "chivalry", name: "Chivalry", icon: "🗡️", active: false },
+        { id: "rigour", name: "Rigour", icon: "🎯", active: false },
+      ]
+    };
+
+    // Populate Inventory UI
+    const invGrid = document.getElementById("inventoryGrid");
+    for (let i = 0; i < 28; i++) {
+      const slot = document.createElement("div");
+      slot.className = "inv-slot";
+      const item = state.inventory[i];
+      if (item) {
+        slot.innerHTML = `<span class="qty">${item.qty > 1 ? (item.qty >= 1000000 ? Math.floor(item.qty/1000000) + 'M' : item.qty) : ''}</span>${item.icon}`;
+        slot.title = item.name;
+        slot.onclick = () => {
+          showXpDrop(`Used ${item.name}`);
+        };
+      }
+      invGrid.appendChild(slot);
+    }
+
+    // Populate Prayer UI
+    const prayerGrid = document.getElementById("prayerGrid");
+    state.prayers.forEach(p => {
+      const slot = document.createElement("div");
+      slot.className = "prayer-slot";
+      slot.id = `prayer_${p.id}`;
+      slot.innerHTML = `<span class="icon">${p.icon}</span><span class="name">${p.name}</span>`;
+      slot.onclick = () => togglePrayer(p);
+      prayerGrid.appendChild(slot);
+    });
+
+    function togglePrayer(p) {
+      p.active = !p.active;
+      const el = document.getElementById(`prayer_${p.id}`);
+      if (p.active) {
+        el.classList.add("active");
+        if (p.overhead) {
+          // Deactivate other overheads
+          state.prayers.filter(o => o.overhead && o.id !== p.id).forEach(o => {
+            o.active = false;
+            document.getElementById(`prayer_${o.id}`).classList.remove("active");
+          });
+          state.player.activeOverhead = p.overhead;
+        }
+        showXpDrop(`Activated ${p.name}`);
+      } else {
+        el.classList.remove("active");
+        if (state.player.activeOverhead === p.overhead) {
+          state.player.activeOverhead = null;
+        }
+      }
+    }
+
+    // Populate Plugin Toggle UI
+    const pluginList = document.getElementById("pluginList");
+    const pluginMeta = [
+      { key: "tileIndicators", name: "Destination Tile Indicator" },
+      { key: "trueTile", name: "True Tile Indicator" },
+      { key: "groundItems", name: "Ground Items Overlay & Lootbeams" },
+      { key: "npcIndicators", name: "NPC Highlight & Hull Boxes" },
+      { key: "statusBars", name: "Dynamic Status Bars (HP & Prayer)" },
+      { key: "xpDrops", name: "Floating XP Drops" },
+    ];
+    pluginMeta.forEach(meta => {
+      const row = document.createElement("div");
+      row.className = "plugin-row";
+      row.innerHTML = `
+        <span class="title">${meta.name}</span>
+        <label class="switch">
+          <input type="checkbox" ${state.plugins[meta.key] ? "checked" : ""}>
+          <span class="slider"></span>
+        </label>
+      `;
+      row.querySelector("input").onchange = (e) => {
+        state.plugins[meta.key] = e.target.checked;
+      };
+      pluginList.appendChild(row);
+    });
+
+    // ==========================================
+    // OFFICIAL RUNELITE PLUGIN HUB BROWSER & INSTALLER
+    // ==========================================
+    const hubModal = document.getElementById("pluginHubModal");
+    const openHubBtn = document.getElementById("openPluginHubBtn");
+    const closeHubBtn = document.getElementById("closePluginHubBtn");
+    const hubSearchInput = document.getElementById("hubSearchInput");
+    const hubPluginList = document.getElementById("hubPluginList");
+    const hubCategories = document.getElementById("hubCategories");
+
+    const officialHubCatalog = [
+      {
+        id: "loot-tracker",
+        title: "Loot Tracker",
+        author: "RuneLite Hub Community",
+        version: "1.4.2",
+        category: "pvm",
+        desc: "Automatically records all NPC monster drops, boss loot, and Clue Scroll values.",
+        installed: false
+      },
+      {
+        id: "quest-helper",
+        title: "Quest Helper (Mobile)",
+        author: "Zoinkwiz",
+        version: "2.1.0",
+        category: "quests",
+        desc: "Overlays step-by-step quest directions, world interactables, and dynamic arrows.",
+        installed: false
+      },
+      {
+        id: "timers-buffs",
+        title: "Timers & Buffs",
+        author: "RuneLite Core Team",
+        version: "1.0.8",
+        category: "combat",
+        desc: "Overhead countdown badges for active potion boosts, stamina, and prayers.",
+        installed: false
+      },
+      {
+        id: "banked-xp",
+        title: "Banked XP Calculator",
+        author: "RuneLite Hub",
+        version: "1.2.3",
+        category: "skilling",
+        desc: "Calculates total skilling XP stored in raw materials, herbs, ores, and bones.",
+        installed: false
+      },
+      {
+        id: "farming-tracker",
+        title: "Farming & Bird House Tracker",
+        author: "RuneLite Community",
+        version: "1.3.1",
+        category: "skilling",
+        desc: "Monitors herb patch growth stages, disease alerts, and birdhouse cooldowns.",
+        installed: false
+      }
+    ];
+
+    let currentHubCategory = "all";
+
+    function renderHubPlugins() {
+      hubPluginList.innerHTML = "";
+      const search = (hubSearchInput.value || "").toLowerCase();
+      const filtered = officialHubCatalog.filter(p => {
+        const matchesCat = currentHubCategory === "all" || p.category === currentHubCategory;
+        const matchesSearch = !search || p.title.toLowerCase().includes(search) || p.desc.toLowerCase().includes(search);
+        return matchesCat && matchesSearch;
+      });
+
+      filtered.forEach(plugin => {
+        const card = document.createElement("div");
+        card.className = "hub-card";
+        card.innerHTML = `
+          <div class="hub-card-header">
+            <span class="hub-card-title">${plugin.title}</span>
+            <span class="hub-card-author">by ${plugin.author} • v${plugin.version}</span>
+          </div>
+          <div class="hub-card-desc">${plugin.desc}</div>
+          <div class="hub-card-footer">
+            <span style="font-size: 10px; color: #00d2ff; text-transform: uppercase;">#${plugin.category}</span>
+            <button class="hub-install-btn ${plugin.installed ? 'installed' : ''}" data-id="${plugin.id}">
+              ${plugin.installed ? '✓ Installed' : '+ Install Plugin'}
+            </button>
+          </div>
+        `;
+
+        const btn = card.querySelector(".hub-install-btn");
+        btn.onclick = () => {
+          plugin.installed = !plugin.installed;
+          if (plugin.installed) {
+            showXpDrop(`Installed ${plugin.title}`);
+            // Add toggle row in bundled plugin list
+            const row = document.createElement("div");
+            row.className = "plugin-row";
+            row.id = `hub-row-${plugin.id}`;
+            row.innerHTML = `
+              <span class="title" style="color: #00d2ff;">[Hub] ${plugin.title}</span>
+              <label class="switch">
+                <input type="checkbox" checked>
+                <span class="slider"></span>
+              </label>
+            `;
+            pluginList.appendChild(row);
+          } else {
+            showXpDrop(`Removed ${plugin.title}`);
+            const existingRow = document.getElementById(`hub-row-${plugin.id}`);
+            if (existingRow) existingRow.remove();
+          }
+          renderHubPlugins();
+        };
+
+        hubPluginList.appendChild(card);
+      });
+    }
+
+    openHubBtn.onclick = () => {
+      hubModal.classList.add("visible");
+      renderHubPlugins();
+    };
+
+    closeHubBtn.onclick = () => {
+      hubModal.classList.remove("visible");
+    };
+
+    hubSearchInput.oninput = () => renderHubPlugins();
+
+    hubCategories.querySelectorAll(".hub-cat-pill").forEach(pill => {
+      pill.onclick = () => {
+        hubCategories.querySelectorAll(".hub-cat-pill").forEach(p => p.classList.remove("active"));
+        pill.classList.add("active");
+        currentHubCategory = pill.dataset.cat;
+        renderHubPlugins();
+      };
+    });
+
+    // Side Stone Tab Switching
+    document.querySelectorAll(".stone-tab").forEach(tab => {
+      tab.onclick = () => {
+        const targetId = tab.dataset.tab;
+        const targetPanel = document.getElementById(targetId);
+        const isVisible = targetPanel.classList.contains("visible");
+
+        // Hide all
+        document.querySelectorAll(".stone-panel").forEach(p => p.classList.remove("visible"));
+        document.querySelectorAll(".stone-tab").forEach(t => t.classList.remove("active"));
+
+        if (!isVisible) {
+          targetPanel.classList.add("visible");
+          tab.classList.add("active");
+        }
+      };
+    });
+
+    // Floating XP Drop Animation
+    function showXpDrop(text) {
+      if (!state.plugins.xpDrops) return;
+      const container = document.getElementById("xpDropContainer");
+      const drop = document.createElement("div");
+      drop.className = "xp-drop";
+      drop.textContent = text;
+      container.appendChild(drop);
+      setTimeout(() => drop.remove(), 1200);
+    }
+
+    // Spawn Click Crosshair Animation
+    function spawnCrosshair(screenX, screenY, color = "yellow") {
+      const cross = document.createElement("div");
+      cross.className = `click-crosshair ${color}`;
+      cross.style.left = `${screenX}px`;
+      cross.style.top = `${screenY}px`;
+      document.body.appendChild(cross);
+      setTimeout(() => cross.remove(), 350);
+    }
+
+    // World to Screen Projection
+    function worldToScreen(worldX, worldY) {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const dx = worldX - state.player.x;
+      const dy = worldY - state.player.y;
+
+      const cos = Math.cos(state.camera.angle);
+      const sin = Math.sin(state.camera.angle);
+
+      // Rotate around player
+      const rx = dx * cos - dy * sin;
+      const ry = dx * sin + dy * cos;
+
+      const screenX = centerX + rx * state.camera.zoom;
+      const screenY = centerY + ry * state.camera.zoom * state.camera.pitch;
+      return { x: screenX, y: screenY };
+    }
+
+    // Screen to World Raycast Inverse
+    function screenToWorld(screenX, screenY) {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      const cos = Math.cos(-state.camera.angle);
+      const sin = Math.sin(-state.camera.angle);
+
+      const dx = (screenX - centerX) / state.camera.zoom;
+      const dy = (screenY - centerY) / (state.camera.zoom * state.camera.pitch);
+
+      const worldX = Math.round(state.player.x + (dx * cos - dy * sin));
+      const worldY = Math.round(state.player.y + (dx * sin + dy * cos));
+      return { x: worldX, y: worldY };
+    }
+
+    // ==========================================
+    // TRUE OSRS TOUCH GESTURE CONTROLS (DIRECT TOUCH & CAMERA ORBIT)
+    // ==========================================
+    let touchStartTime = 0;
+    let longPressTimer = null;
+    let initialTouchPos = { x: 0, y: 0 };
+    let initialTwoTouchDist = 0;
+    let isTwoFingerDragging = false;
+    let lastTwoFingerCenter = { x: 0, y: 0 };
+
+    window.addEventListener("touchstart", (e) => {
+      // Don't trigger game tap if touching HUD
+      if (e.target.closest("#topBar, #sideStonesContainer, #statusBars, #osrsContextMenu")) {
+        return;
+      }
+      hideContextMenu();
+
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        initialTouchPos = { x: touch.clientX, y: touch.clientY };
+        touchStartTime = Date.now();
+
+        // Start 350ms long-press timer for Right-Click Context Menu
+        longPressTimer = setTimeout(() => {
+          triggerContextMenu(touch.clientX, touch.clientY);
+        }, 350);
+
+      } else if (e.touches.length === 2) {
+        clearTimeout(longPressTimer);
+        isTwoFingerDragging = true;
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        initialTwoTouchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        lastTwoFingerCenter = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+      }
+    }, { passive: false });
+
+    window.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const dist = Math.hypot(touch.clientX - initialTouchPos.x, touch.clientY - initialTouchPos.y);
+        if (dist > 10) {
+          clearTimeout(longPressTimer); // Cancel right-click if finger dragged
+        }
+      } else if (e.touches.length === 2 && isTwoFingerDragging) {
+        e.preventDefault();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+
+        // 1. Pinch to Zoom
+        const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        const zoomDelta = (dist - initialTwoTouchDist) * 0.15;
+        state.camera.zoom = Math.max(18, Math.min(65, state.camera.zoom + zoomDelta));
+        initialTwoTouchDist = dist;
+
+        // 2. Drag to Orbit Camera (Yaw & Pitch)
+        const center = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+        const dx = center.x - lastTwoFingerCenter.x;
+        const dy = center.y - lastTwoFingerCenter.y;
+
+        state.camera.angle += dx * 0.01;
+        state.camera.pitch = Math.max(0.35, Math.min(0.85, state.camera.pitch - dy * 0.003));
+        lastTwoFingerCenter = center;
+
+        // Rotate Compass
+        document.getElementById("compass").style.transform = `rotate(${-state.camera.angle}rad)`;
+      }
+    }, { passive: false });
+
+    window.addEventListener("touchend", (e) => {
+      clearTimeout(longPressTimer);
+
+      if (e.touches.length === 0) {
+        const duration = Date.now() - touchStartTime;
+        // Fast Tap = Walk Here or Interact
+        if (duration < 350 && !isTwoFingerDragging) {
+          const world = screenToWorld(initialTouchPos.x, initialTouchPos.y);
+
+          // Check if tapped an NPC
+          const tappedNpc = state.npcs.find(npc => Math.hypot(npc.x - world.x, npc.y - world.y) < 1.0);
+          if (tappedNpc) {
+            spawnCrosshair(initialTouchPos.x, initialTouchPos.y, "red");
+            showXpDrop(`Attacking ${tappedNpc.name}`);
+            state.player.destX = tappedNpc.x;
+            state.player.destY = tappedNpc.y;
+          } else {
+            // Move player to tapped tile
+            spawnCrosshair(initialTouchPos.x, initialTouchPos.y, "yellow");
+            state.player.destX = world.x;
+            state.player.destY = world.y;
+          }
+        }
+        isTwoFingerDragging = false;
+      }
+    });
+
+    // Reset Compass on Tap
+    document.getElementById("compass").onclick = () => {
+      state.camera.angle = 0;
+      document.getElementById("compass").style.transform = "rotate(0rad)";
+    };
+
+    // Run Orb Toggle
+    document.getElementById("runOrb").onclick = () => {
+      state.player.running = !state.player.running;
+      document.getElementById("runOrb").classList.toggle("active", state.player.running);
+      showXpDrop(state.player.running ? "Run Activated" : "Walk Activated");
+    };
+
+    // ==========================================
+    // OSRS RIGHT-CLICK CONTEXT MENU
+    // ==========================================
+    const contextMenu = document.getElementById("osrsContextMenu");
+    const menuOptions = document.getElementById("contextMenuOptions");
+
+    function triggerContextMenu(clientX, clientY) {
+      const world = screenToWorld(clientX, clientY);
+      menuOptions.innerHTML = "";
+
+      const options = [];
+
+      // 1. NPC Options
+      const npc = state.npcs.find(n => Math.hypot(n.x - world.x, n.y - world.y) < 1.4);
+      if (npc) {
+        options.push({ verb: "Attack", noun: `${npc.name} (level: ${npc.level})`, action: () => {
+          spawnCrosshair(clientX, clientY, "red");
+          showXpDrop(`Attacking ${npc.name}`);
+          state.player.destX = npc.x; state.player.destY = npc.y;
+        }});
+        options.push({ verb: "Examine", noun: npc.name, action: () => {
+          showXpDrop(`Examined: A fierce ${npc.name}`);
+        }});
+      }
+
+      // 2. Ground Items Options
+      const ground = state.groundItems.find(g => Math.hypot(g.x - world.x, g.y - world.y) < 1.0);
+      if (ground) {
+        options.push({ verb: "Take", noun: ground.name, action: () => {
+          spawnCrosshair(clientX, clientY, "red");
+          showXpDrop(`Took ${ground.name}`);
+          state.groundItems = state.groundItems.filter(i => i.id !== ground.id);
+        }});
+      }
+
+      // 3. Walk Here
+      options.push({ verb: "Walk", noun: "here", action: () => {
+        spawnCrosshair(clientX, clientY, "yellow");
+        state.player.destX = world.x; state.player.destY = world.y;
+      }});
+
+      // 4. Cancel
+      options.push({ verb: "Cancel", noun: "", isCancel: true, action: hideContextMenu });
+
+      options.forEach(opt => {
+        const item = document.createElement("div");
+        item.className = `menu-option ${opt.isCancel ? 'cancel' : ''}`;
+        item.innerHTML = `<span class="verb">${opt.verb}</span> <span class="noun">${opt.noun}</span>`;
+        item.onclick = (ev) => {
+          ev.stopPropagation();
+          opt.action();
+          hideContextMenu();
+        };
+        menuOptions.appendChild(item);
+      });
+
+      // Position Context Menu
+      const menuWidth = 160;
+      const menuHeight = options.length * 30 + 30;
+      const x = Math.min(clientX, window.innerWidth - menuWidth - 10);
+      const y = Math.min(clientY, window.innerHeight - menuHeight - 10);
+
+      contextMenu.style.left = `${x}px`;
+      contextMenu.style.top = `${y}px`;
+      contextMenu.style.display = "flex";
+    }
+
+    function hideContextMenu() {
+      contextMenu.style.display = "none";
+    }
+
+    // ==========================================
+    // GAME ENGINE & RUNELITE PLUGIN RENDERING
+    // ==========================================
+    let lastTick = Date.now();
+
+    function gameLoop() {
+      requestAnimationFrame(gameLoop);
+
+      const now = Date.now();
+      // Tick every 600ms (authentic RuneScape 0.6s tick)
+      if (now - lastTick >= 600) {
+        lastTick = now;
+        onGameTick();
+      }
+
+      // Smooth Movement Interpolation
+      const speed = state.player.running ? 0.12 : 0.06;
+      const dist = Math.hypot(state.player.destX - state.player.x, state.player.destY - state.player.y);
+      if (dist > 0.05) {
+        state.player.x += (state.player.destX - state.player.x) * speed;
+        state.player.y += (state.player.destY - state.player.y) * speed;
+      }
+
+      render();
+      renderMinimap();
+    }
+
+    function onGameTick() {
+      // Step True Tile to destination
+      if (Math.hypot(state.player.destX - state.player.trueX, state.player.destY - state.player.trueY) > 0.5) {
+        const step = state.player.running ? 2 : 1;
+        const angle = Math.atan2(state.player.destY - state.player.trueY, state.player.destX - state.player.trueX);
+        state.player.trueX += Math.round(Math.cos(angle) * step);
+        state.player.trueY += Math.round(Math.sin(angle) * step);
+      } else {
+        state.player.trueX = state.player.destX;
+        state.player.trueY = state.player.destY;
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Ground Tile Grid
+      const zoom = state.camera.zoom;
+      const viewRange = 14;
+
+      for (let dx = -viewRange; dx <= viewRange; dx++) {
+        for (let dy = -viewRange; dy <= viewRange; dy++) {
+          const tileX = Math.floor(state.player.x) + dx;
+          const tileY = Math.floor(state.player.y) + dy;
+
+          const p1 = worldToScreen(tileX, tileY);
+          const p2 = worldToScreen(tileX + 1, tileY);
+          const p3 = worldToScreen(tileX + 1, tileY + 1);
+          const p4 = worldToScreen(tileX, tileY + 1);
+
+          // Checkerboard tile shading
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y);
+          ctx.lineTo(p4.x, p4.y);
+          ctx.closePath();
+
+          const isDark = (tileX + tileY) % 2 === 0;
+          ctx.fillStyle = isDark ? "#28341f" : "#2e3b24"; // Authentic Lumbridge grass
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0,0,0,0.15)";
+          ctx.stroke();
+        }
+      }
+
+      // 2. RuneLite Plugin: Tile Indicators (Destination Tile)
+      if (state.plugins.tileIndicators && (state.player.destX !== state.player.x || state.player.destY !== state.player.y)) {
+        drawTileOutline(state.player.destX, state.player.destY, "#00ff00", 2, "rgba(0, 255, 0, 0.15)");
+      }
+
+      // 3. RuneLite Plugin: True Tile Indicator
+      if (state.plugins.trueTile) {
+        drawTileOutline(state.player.trueX, state.player.trueY, "#00d2ff", 2, "rgba(0, 210, 255, 0.2)");
+      }
+
+      // 4. RuneLite Plugin: Ground Items & Loot Beams
+      if (state.plugins.groundItems) {
+        state.groundItems.forEach(item => {
+          const pt = worldToScreen(item.x + 0.5, item.y + 0.5);
+
+          // Loot Beam for high value items
+          if (item.tier === "beam") {
+            const grad = ctx.createLinearGradient(pt.x, pt.y, pt.x, pt.y - 120);
+            grad.addColorStop(0, "rgba(255, 235, 59, 0.7)");
+            grad.addColorStop(1, "rgba(255, 235, 59, 0)");
+            ctx.fillStyle = grad;
+            ctx.fillRect(pt.x - 3, pt.y - 120, 6, 120);
+          }
+
+          // Item Label
+          ctx.font = "bold 10px monospace";
+          ctx.textAlign = "center";
+          const colorMap = {
+            white: "#ffffff",
+            orange: "#ff9800",
+            purple: "#9c27b0",
+            beam: "#ffff00",
+          };
+          ctx.fillStyle = colorMap[item.tier] || "#ffffff";
+          ctx.shadowColor = "#000000";
+          ctx.shadowBlur = 4;
+          ctx.fillText(`${item.name} (${item.value.toLocaleString()})`, pt.x, pt.y - 8);
+          ctx.shadowBlur = 0;
+        });
+      }
+
+      // 5. RuneLite Plugin: NPC Indicators (Hull Boxes & Names)
+      state.npcs.forEach(npc => {
+        const pt = worldToScreen(npc.x + 0.5, npc.y + 0.5);
+
+        if (state.plugins.npcIndicators) {
+          drawTileOutline(npc.x, npc.y, npc.color, 1.5, "rgba(0,0,0,0.1)");
+        }
+
+        // Draw NPC character circle
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y - 10, 9, 0, Math.PI * 2);
+        ctx.fillStyle = npc.color;
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // NPC Overhead Name & Level
+        ctx.font = "bold 9px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#ffff00";
+        ctx.shadowColor = "#000000";
+        ctx.shadowBlur = 3;
+        ctx.fillText(`${npc.name} (lvl ${npc.level})`, pt.x, pt.y - 25);
+
+        // HP bar above NPC
+        ctx.fillStyle = "#ff3333";
+        ctx.fillRect(pt.x - 12, pt.y - 22, 24, 3);
+        ctx.fillStyle = "#00e676";
+        ctx.fillRect(pt.x - 12, pt.y - 22, 24 * (npc.hp / npc.maxHp), 3);
+        ctx.shadowBlur = 0;
+      });
+
+      // 6. Draw Player Character
+      const playerPt = worldToScreen(state.player.x + 0.5, state.player.y + 0.5);
+
+      // Player Body
+      ctx.beginPath();
+      ctx.arc(playerPt.x, playerPt.y - 12, 11, 0, Math.PI * 2);
+      ctx.fillStyle = "#1e88e5";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Overhead Prayer Icon (if active)
+      if (state.player.activeOverhead) {
+        ctx.font = "16px sans-serif";
+        ctx.textAlign = "center";
+        const iconMap = {
+          melee: "🛡️",
+          magic: "🔮",
+          range: "🏹"
+        };
+        ctx.fillText(iconMap[state.player.activeOverhead] || "✨", playerPt.x, playerPt.y - 36);
+      }
+
+      // Player Name
+      ctx.font = "bold 10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "#000000";
+      ctx.shadowBlur = 4;
+      ctx.fillText("Ethan", playerPt.x, playerPt.y - 26);
+      ctx.shadowBlur = 0;
+    }
+
+    function drawTileOutline(tileX, tileY, strokeColor, lineWidth = 2, fillColor = null) {
+      const p1 = worldToScreen(tileX, tileY);
+      const p2 = worldToScreen(tileX + 1, tileY);
+      const p3 = worldToScreen(tileX + 1, tileY + 1);
+      const p4 = worldToScreen(tileX, tileY + 1);
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.lineTo(p4.x, p4.y);
+      ctx.closePath();
+
+      if (fillColor) {
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+      }
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    }
+
+    // Minimap Rendering
+    function renderMinimap() {
+      mctx.clearRect(0, 0, 110, 110);
+      mctx.save();
+      mctx.translate(55, 55);
+      mctx.rotate(-state.camera.angle);
+
+      // Minimap background terrain
+      mctx.fillStyle = "#1b2a1a";
+      mctx.fillRect(-55, -55, 110, 110);
+
+      // Draw NPCs on minimap (yellow dots)
+      mctx.fillStyle = "#ffff00";
+      state.npcs.forEach(npc => {
+        const mx = (npc.x - state.player.x) * 4;
+        const my = (npc.y - state.player.y) * 4;
+        mctx.fillRect(mx - 1.5, my - 1.5, 3, 3);
+      });
+
+      // Draw Ground Items on minimap (red dots)
+      mctx.fillStyle = "#ff3333";
+      state.groundItems.forEach(item => {
+        const mx = (item.x - state.player.x) * 4;
+        const my = (item.y - state.player.y) * 4;
+        mctx.fillRect(mx - 1.5, my - 1.5, 3, 3);
+      });
+
+      // Player center (white dot)
+      mctx.fillStyle = "#ffffff";
+      mctx.fillRect(-2, -2, 4, 4);
+
+      mctx.restore();
+    }
+
+    // Start Engine Loop
+    gameLoop();
+  </script>
+</body>
+</html>

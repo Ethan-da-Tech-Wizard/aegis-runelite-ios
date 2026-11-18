@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>FullScreen</key>
+            <true/>
+            <key>Icon</key>
+            <data>iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAPElEQVR42u3PMQEAAAgEID95/0xjg1cwkITe04FCEAgEAgEAgEAgEAgEAgEAgEAgEAgEAgEAgEAgEAhmwAEz0QABWv6zZwAAAABJRU5ErkJggg==</data>
+            <key>IsRemovable</key>
+            <true/>
+            <key>Label</key>
+            <string>RuneLite</string>
+            <key>PayloadDescription</key>
+            <string>Standalone RuneLite Client for iOS with OSRS touch controls and plugins.</string>
+            <key>PayloadDisplayName</key>
+            <string>RuneLite Mobile WebClip</string>
+            <key>PayloadIdentifier</key>
+            <string>net.runelite.mobile.webclip</string>
+            <key>PayloadType</key>
+            <string>com.apple.webClip.managed</string>
+            <key>PayloadUUID</key>
+            <string>b40dd28a-fb9c-5bc9-a0d2-94b3aa680045</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>Precomposed</key>
+            <true/>
+            <key>URL</key>
+            <string>file:///runelite_mobile.html</string>
+        </dict>
+    </array>
+    <key>PayloadDescription</key>
+    <string>Installs the standalone RuneLite client on your iPhone Home Screen.</string>
+    <key>PayloadDisplayName</key>
+    <string>RuneLite Mobile</string>
+    <key>PayloadIdentifier</key>
+    <string>net.runelite.mobile</string>
+    <key>PayloadOrganization</key>
+    <string>TWU LLC</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>cfde19f7-4a92-58c2-ba41-ac93937bba75</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>

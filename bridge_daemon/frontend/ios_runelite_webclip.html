@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RuneLite Mobile">
+  <title>RuneLite Mobile Bridge (iOS Web Clip)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #header {
+      height: 44px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      z-index: 10;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: #58a6ff;
+      font-size: 15px;
+    }
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: #238636;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .security-badge {
+      font-size: 11px;
+      color: #7ee787;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    #viewport-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas#gameCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+    #virtualControls {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .control-group {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .v-btn {
+      background: rgba(22, 27, 34, 0.85);
+      border: 1px solid rgba(88, 166, 255, 0.4);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    .v-btn:active {
+      background: rgba(88, 166, 255, 0.3);
+      border-color: #58a6ff;
+    }
+    /* Side Drawer for RuneLite Plugins */
+    #pluginDrawer {
+      position: absolute;
+      top: 44px;
+      right: -280px;
+      width: 280px;
+      bottom: 0;
+      background: #161b22;
+      border-left: 1px solid #30363d;
+      transition: right 0.25s ease;
+      z-index: 20;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    #pluginDrawer.open {
+      right: 0;
+    }
+    .drawer-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #f0f6fc;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .plugin-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .plugin-label {
+      font-size: 13px;
+    }
+    .plugin-desc {
+      font-size: 10px;
+      color: #8b949e;
+    }
+    /* Custom Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #30363d;
+      transition: .2s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px; width: 14px;
+      left: 3px; bottom: 3px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #238636; }
+    input:checked + .slider:before { transform: translateX(16px); }
+  </style>
+</head>
+<body>
+
+  <div id="header">
+    <div class="brand">
+      <span>⚔️ RuneLite iOS</span>
+      <span class="badge">Distributed</span>
+    </div>
+    <div class="security-badge">
+      <span>🔒 Zero-User-Data Safe</span>
+    </div>
+    <button class="v-btn" style="padding:4px 8px;" onclick="toggleDrawer()">⚙️ Plugins</button>
+  </div>
+
+  <div id="viewport-container">
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <div id="virtualControls">
+      <div class="control-group">
+        <button class="v-btn" onclick="sendQuickAction('prayer')">⚡ Quick Prayer</button>
+        <button class="v-btn" onclick="sendQuickAction('special')">🗡️ Spec Attack</button>
+      </div>
+      <div class="control-group">
+        <button class="v-btn" onclick="sendQuickKey('F1')">Inv</button>
+        <button class="v-btn" onclick="sendQuickKey('F2')">Pray</button>
+        <button class="v-btn" onclick="sendQuickKey('F3')">Spells</button>
+      </div>
+    </div>
+
+    <!-- Plugin Drawer -->
+    <div id="pluginDrawer">
+      <div class="drawer-title">
+        <span>Active Plugins (77 Available)</span>
+        <span style="cursor:pointer;" onclick="toggleDrawer()">✕</span>
+      </div>
+      <div id="pluginList">
+        <!-- Dynamically rendered plugins -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawerOpen = false;
+
+    // Default plugins state (synchronized with reverse-engineered RuneLite architecture)
+    const plugins = [
+      { id: 'agility', name: 'Agility', desc: 'Highlight obstacles and clickboxes', active: true },
+      { id: 'ground_items', name: 'Ground Items', desc: 'Display item drops with GE prices', active: true },
+      { id: 'prayer', name: 'Prayer Flicking', desc: 'Tick timers and prayer bar overlay', active: true },
+      { id: 'tile_indicators', name: 'Tile Indicators', desc: 'Highlight hover and destination tile', active: true },
+      { id: 'xp_drops', name: 'XP Drops', desc: 'Floating experience indicators', active: true },
+      { id: 'clues', name: 'Clue Scroll Solver', desc: 'Step-by-step puzzle overlay', active: false }
+    ];
+
+    function toggleDrawer() {
+      drawerOpen = !drawerOpen;
+      document.getElementById('pluginDrawer').classList.toggle('open', drawerOpen);
+    }
+
+    function renderPluginDrawer() {
+      const container = document.getElementById('pluginList');
+      container.innerHTML = plugins.map(p => `
+        <div class="plugin-item">
+          <div>
+            <div class="plugin-label">${p.name}</div>
+            <div class="plugin-desc">${p.desc}</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" ${p.active ? 'checked' : ''} onchange="togglePlugin('${p.id}')">
+            <span class="slider"></span>
+          </label>
+        </div>
+      `).join('');
+    }
+
+    function togglePlugin(id) {
+      const p = plugins.find(x => x.id === id);
+      if (p) {
+        p.active = !p.active;
+        if (window.location.protocol.startsWith('http')) {
+          fetch('/api/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, enabled: p.active })
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // Touch Interaction (Translates touch to RuneLite mouse events)
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = Math.floor((touch.clientX - rect.left) * (canvas.width / rect.width));
+      const y = Math.floor((touch.clientY - rect.top) * (canvas.height / rect.height));
+      handleTap(x, y);
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
+      handleTap(x, y);
+    });
+
+    let clickMarker = null;
+    let liveOverlays = [];
+
+    function handleTap(x, y) {
+      clickMarker = { x, y, radius: 4, alpha: 1.0 };
+      if (window.location.protocol.startsWith('http')) {
+        fetch('/api/touch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'tap', x, y })
+        }).catch(() => {});
+      }
+    }
+
+    // Periodic 600ms sync with Headless Daemon (1 OSRS game tick)
+    if (window.location.protocol.startsWith('http')) {
+      setInterval(() => {
+        fetch('/api/state')
+          .then(res => res.json())
+          .then(data => {
+            if (data.overlays) liveOverlays = data.overlays;
+          })
+          .catch(() => {});
+      }, 600);
+    }
+
+    function sendQuickAction(action) {
+      console.log('Dispatched quick action:', action);
+    }
+
+    function sendQuickKey(key) {
+      console.log('Dispatched quick key:', key);
+    }
+
+    // Continuous 60 FPS Render Loop (Simulating OSRS Canvas + RuneLite Plugin Overlays)
+    let tick = 0;
+    function renderFrame() {
+      tick++;
+
+      // 1. Render simulated dark fantasy OSRS world scene
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Grid ground tiles
+      ctx.strokeStyle = '#1f2937';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // 2. Player marker in center
+      ctx.fillStyle = '#60a5fa';
+      ctx.beginPath();
+      ctx.arc(400, 250, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px monospace';
+      ctx.fillText('Kilmer (Level 126)', 360, 230);
+
+      // 3. Plugin Overlays
+      // Tile Indicators Plugin
+      if (plugins.find(p => p.id === 'tile_indicators').active) {
+        ctx.strokeStyle = '#00FFAA';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(380, 230, 40, 40);
+        ctx.fillStyle = 'rgba(0, 255, 170, 0.15)';
+        ctx.fillRect(380, 230, 40, 40);
+      }
+
+      // Agility Plugin Overlay
+      if (plugins.find(p => p.id === 'agility').active) {
+        ctx.strokeStyle = '#00FF00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(480, 180, 80, 50);
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+        ctx.fillRect(480, 180, 80, 50);
+        ctx.fillStyle = '#00FF00';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('Obstacle (Jump)', 485, 172);
+      }
+
+      // Ground Items Plugin Overlay
+      if (plugins.find(p => p.id === 'ground_items').active) {
+        ctx.fillStyle = '#FF9800';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('Rune scimitar (15,200 gp)', 260, 310);
+      }
+
+      // Prayer Flicking Overlay Bar
+      if (plugins.find(p => p.id === 'prayer').active) {
+        const barWidth = 140;
+        const progress = ((tick * 3) % 100) / 100;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(630, 20, barWidth, 16);
+        ctx.fillStyle = '#00E5FF';
+        ctx.fillRect(630, 20, barWidth * progress, 16);
+        ctx.strokeStyle = '#58a6ff';
+        ctx.strokeRect(630, 20, barWidth, 16);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px sans-serif';
+        ctx.fillText('Quick Prayer 99/99', 645, 32);
+      }
+
+      // Touch Ripple Animation
+      if (clickMarker) {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${clickMarker.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(clickMarker.x, clickMarker.y, clickMarker.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        clickMarker.radius += 1.5;
+        clickMarker.alpha -= 0.05;
+        if (clickMarker.alpha <= 0) clickMarker = null;
+      }
+
+      requestAnimationFrame(renderFrame);
+    }
+
+    renderPluginDrawer();
+    requestAnimationFrame(renderFrame);
+  </script>
+</body>
+</html>

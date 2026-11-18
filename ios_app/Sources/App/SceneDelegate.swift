@@ -1,0 +1,27 @@
+//
+//  SceneDelegate.swift
+//  RuneLiteMobile
+//
+//  Created for iOS Standalone RuneLite Client Architecture.
+//  Copyright © 2026 TWU LLC. All rights reserved.
+//
+
+import UIKit
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
+
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let windowScene = (scene as? UIWindowScene) else { return }
+
+        let window = UIWindow(windowScene: windowScene)
+        let rootVC = OverlayViewController()
+        window.rootViewController = rootVC
+        self.window = window
+        window.makeKeyAndVisible()
+    }
+}

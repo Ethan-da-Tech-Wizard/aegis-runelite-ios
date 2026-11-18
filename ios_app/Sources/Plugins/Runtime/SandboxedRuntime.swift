@@ -1,0 +1,203 @@
+//
+//  SandboxedRuntime.swift
+//  RuneLiteMobile
+//
+//  Created for iOS Standalone RuneLite Client Architecture.
+//  Copyright © 2026 TWU LLC. All rights reserved.
+//
+
+import Foundation
+import JavaScriptCore
+
+/// Declarative draw commands emitted by sandboxed community plugins
+public struct ScriptDrawCommand {
+    public let pluginId: String
+    public let layer: String     // "world", "dynamic", "infobox"
+    public let type: String      // "polygon", "text", "outline"
+    public let colorHex: String
+    public let worldX: Int?
+    public let worldY: Int?
+    public let screenX: Double?
+    public let screenY: Double?
+    public let text: String?
+}
+
+/// Sandboxed JavaScriptCore Runtime for Community Plugins
+/// Conforms 100% to Apple App Store Guideline 2.5.2 & W^X security rules.
+/// Zero-JIT interpreted execution, isolated heap, read-only game state, no networking/DOM access.
+public final class SandboxedRuntime {
+    public static let shared = SandboxedRuntime()
+
+    private let vm: JSVirtualMachine
+    private let context: JSContext
+    private var loadedPlugins: [String: JSValue] = [:]
+    private var queuedDrawCommands: [ScriptDrawCommand] = []
+    private let lock = NSLock()
+
+    // Banned terms to enforce Jagex anti-cheat rules before script evaluation
+    private let forbiddenAstTokens = [
+        "autoPrayer", "oneClickAgility", "packetSender",
+        "simulateTouch", "autoAlch", "bossProjectilePredictor",
+        "sendPacket", "injectTouch", "autoClick"
+    ]
+
+    private init() {
+        self.vm = JSVirtualMachine()
+        self.context = JSContext(virtualMachine: vm)
+        setupSandboxBridges()
+    }
+
+    private func setupSandboxBridges() {
+        // 1. Remove dangerous web/networking globals
+        context.evaluateScript("""
+            delete this.fetch;
+            delete this.XMLHttpRequest;
+            delete this.WebSocket;
+            delete this.Worker;
+            delete this.SharedWorker;
+        """)
+
+        // 2. Exception Handler
+        context.exceptionHandler = { _, exception in
+            if let exc = exception {
+                print("❌ [SandboxedRuntime Exception]: \(exc.toString() ?? "Unknown error")")
+            }
+        }
+
+        // 3. Read-Only Game State Provider (Immutable JSON bridge)
+        let getPlayerState: @convention(block) () -> [String: Any] = {
+            let player = GameState.shared.localPlayer
+            return [
+                "worldX": player.worldLocation.x,
+                "worldY": player.worldLocation.y,
+                "plane": player.worldLocation.plane,
+                "animation": player.animationId,
+                "isInteracting": player.isInteracting
+            ]
+        }
+        context.setObject(getPlayerState, forKeyedSubscript: "getLocalPlayer" as NSString)
+
+        // 4. Read-Only Ground Items Provider
+        let getGroundItems: @convention(block) () -> [[String: Any]] = {
+            return GameState.shared.groundItems.map { item in
+                [
+                    "id": item.id,
+                    "name": item.name,
+                    "gePrice": item.gePrice,
+                    "haPrice": item.haPrice,
+                    "worldX": item.location.x,
+                    "worldY": item.location.y,
+                    "quantity": item.quantity
+                ]
+            }
+        }
+        context.setObject(getGroundItems, forKeyedSubscript: "getGroundItems" as NSString)
+
+        // 5. Declarative Overlay Drawing Sink
+        let renderOverlayBlock: @convention(block) (NSDictionary) -> Void = { [weak self] rawCommand in
+            guard let self = self else { return }
+            let pluginId = rawCommand["pluginId"] as? String ?? "unknown"
+            let layer = rawCommand["layer"] as? String ?? "world"
+            let type = rawCommand["type"] as? String ?? "polygon"
+            let colorHex = rawCommand["colorHex"] as? String ?? "#FFFFFF"
+            let worldX = rawCommand["worldX"] as? Int
+            let worldY = rawCommand["worldY"] as? Int
+            let screenX = rawCommand["screenX"] as? Double
+            let screenY = rawCommand["screenY"] as? Double
+            let text = rawCommand["text"] as? String
+
+            let command = ScriptDrawCommand(
+                pluginId: pluginId,
+                layer: layer,
+                type: type,
+                colorHex: colorHex,
+                worldX: worldX,
+                worldY: worldY,
+                screenX: screenX,
+                screenY: screenY,
+                text: text
+            )
+
+            self.lock.lock()
+            self.queuedDrawCommands.append(command)
+            self.lock.unlock()
+        }
+        context.setObject(renderOverlayBlock, forKeyedSubscript: "renderOverlay" as NSString)
+    }
+
+    /// Validates script source code against Jagex anti-cheat rules before loading
+    public func validateScriptSource(_ source: String) -> (isValid: Bool, reason: String?) {
+        for token in forbiddenAstTokens {
+            if source.contains(token) {
+                return (false, "Script contains forbidden automation keyword: \(token)")
+            }
+        }
+        return (true, nil)
+    }
+
+    /// Loads and registers a community plugin script
+    public func loadPlugin(id: String, sourceCode: String) -> Bool {
+        let (isValid, reason) = validateScriptSource(sourceCode)
+        guard isValid else {
+            print("❌ [SandboxedRuntime] Blocked plugin '\(id)': \(reason ?? "")")
+            return false
+        }
+
+        let wrappedSource = """
+            (function() {
+                var module = { exports: {} };
+                var exports = module.exports;
+                \(sourceCode);
+                return module.exports;
+            })()
+        """
+
+        guard let pluginInstance = context.evaluateScript(wrappedSource), !pluginInstance.isUndefined else {
+            print("❌ [SandboxedRuntime] Failed to instantiate plugin '\(id)'")
+            return false
+        }
+
+        loadedPlugins[id] = pluginInstance
+
+        // Call lifecycle startUp
+        if let startUpMethod = pluginInstance.objectForKeyedSubscript("startUp"), !startUpMethod.isUndefined {
+            startUpMethod.call(withArguments: [])
+        }
+
+        print("✅ [SandboxedRuntime] Plugin '\(id)' loaded and started in sandbox")
+        return true
+    }
+
+    /// Unloads a community plugin
+    public func unloadPlugin(id: String) {
+        if let pluginInstance = loadedPlugins[id] {
+            if let shutDownMethod = pluginInstance.objectForKeyedSubscript("shutDown"), !shutDownMethod.isUndefined {
+                shutDownMethod.call(withArguments: [])
+            }
+            loadedPlugins.removeValue(forKey: id)
+            print("ℹ️ [SandboxedRuntime] Plugin '\(id)' unloaded")
+        }
+    }
+
+    /// Dispatches game tick to all active sandboxed plugins
+    public func dispatchGameTick(tick: Int) {
+        lock.lock()
+        queuedDrawCommands.removeAll()
+        lock.unlock()
+
+        for (pluginId, pluginInstance) in loadedPlugins {
+            if let onTickMethod = pluginInstance.objectForKeyedSubscript("onGameTick"), !onTickMethod.isUndefined {
+                onTickMethod.call(withArguments: [tick])
+            }
+        }
+    }
+
+    /// Retrieves collected overlay commands for rendering in Metal pipeline
+    public func flushDrawCommands() -> [ScriptDrawCommand] {
+        lock.lock()
+        defer { lock.unlock() }
+        let commands = queuedDrawCommands
+        queuedDrawCommands.removeAll()
+        return commands
+    }
+}

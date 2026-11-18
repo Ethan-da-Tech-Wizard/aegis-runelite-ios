@@ -1,0 +1,297 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A0100012CE8000100000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100022CE8000100000001 /* AppDelegate.swift */; };
+		1A0100032CE8000100000001 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100042CE8000100000001 /* SceneDelegate.swift */; };
+		1A0100052CE8000100000001 /* RuneLiteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100062CE8000100000001 /* RuneLiteApp.swift */; };
+		1A0100072CE8000100000001 /* WorldPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100082CE8000100000001 /* WorldPoint.swift */; };
+		1A0100092CE8000100000001 /* LocalPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01000A2CE8000100000001 /* LocalPoint.swift */; };
+		1A01000B2CE8000100000001 /* Perspective.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01000C2CE8000100000001 /* Perspective.swift */; };
+		1A01000D2CE8000100000001 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01000E2CE8000100000001 /* Item.swift */; };
+		1A01000F2CE8000100000001 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100102CE8000100000001 /* Actor.swift */; };
+		1A0100112CE8000100000001 /* EventBus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100122CE8000100000001 /* EventBus.swift */; };
+		1A0100132CE8000100000001 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100142CE8000100000001 /* GameState.swift */; };
+		1A0100152CE8000100000001 /* PluginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100162CE8000100000001 /* PluginManager.swift */; };
+		1A0100172CE8000100000001 /* JagexOAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100182CE8000100000001 /* JagexOAuthManager.swift */; };
+		1A0100192CE8000100000001 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01001A2CE8000100000001 /* KeychainHelper.swift */; };
+		1A01001B2CE8000100000001 /* JagexComplianceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01001C2CE8000100000001 /* JagexComplianceEngine.swift */; };
+		1A01001D2CE8000100000001 /* MetalOverlayRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01001E2CE8000100000001 /* MetalOverlayRenderer.swift */; };
+		1A01001F2CE8000100000001 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100202CE8000100000001 /* Shaders.metal */; };
+		1A0100212CE8000100000001 /* OverlayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100222CE8000100000001 /* OverlayViewController.swift */; };
+		1A0100232CE8000100000001 /* PluginSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100242CE8000100000001 /* PluginSettingsView.swift */; };
+		1A0100252CE8000100000001 /* PluginProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100262CE8000100000001 /* PluginProtocol.swift */; };
+		1A0100272CE8000100000001 /* TileIndicatorsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100282CE8000100000001 /* TileIndicatorsPlugin.swift */; };
+		1A0100292CE8000100000001 /* GroundItemsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01002A2CE8000100000001 /* GroundItemsPlugin.swift */; };
+		1A01002B2CE8000100000001 /* XpTrackerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01002C2CE8000100000001 /* XpTrackerPlugin.swift */; };
+		1A01002D2CE8000100000001 /* IdleNotifierPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A01002E2CE8000100000001 /* IdleNotifierPlugin.swift */; };
+		1A01002F2CE8000100000001 /* MenuEntrySwapperPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0100302CE8000100000001 /* MenuEntrySwapperPlugin.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A0100002CE8000000000001 /* RuneLiteMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RuneLiteMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0100022CE8000100000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1A0100042CE8000100000001 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		1A0100062CE8000100000001 /* RuneLiteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuneLiteApp.swift; sourceTree = "<group>"; };
+		1A0100082CE8000100000001 /* WorldPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldPoint.swift; sourceTree = "<group>"; };
+		1A01000A2CE8000100000001 /* LocalPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalPoint.swift; sourceTree = "<group>"; };
+		1A01000C2CE8000100000001 /* Perspective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Perspective.swift; sourceTree = "<group>"; };
+		1A01000E2CE8000100000001 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
+		1A0100102CE8000100000001 /* Actor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actor.swift; sourceTree = "<group>"; };
+		1A0100122CE8000100000001 /* EventBus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBus.swift; sourceTree = "<group>"; };
+		1A0100142CE8000100000001 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		1A0100162CE8000100000001 /* PluginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManager.swift; sourceTree = "<group>"; };
+		1A0100182CE8000100000001 /* JagexOAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JagexOAuthManager.swift; sourceTree = "<group>"; };
+		1A01001A2CE8000100000001 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		1A01001C2CE8000100000001 /* JagexComplianceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JagexComplianceEngine.swift; sourceTree = "<group>"; };
+		1A01001E2CE8000100000001 /* MetalOverlayRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalOverlayRenderer.swift; sourceTree = "<group>"; };
+		1A0100202CE8000100000001 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
+		1A0100222CE8000100000001 /* OverlayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayViewController.swift; sourceTree = "<group>"; };
+		1A0100242CE8000100000001 /* PluginSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettingsView.swift; sourceTree = "<group>"; };
+		1A0100262CE8000100000001 /* PluginProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginProtocol.swift; sourceTree = "<group>"; };
+		1A0100282CE8000100000001 /* TileIndicatorsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileIndicatorsPlugin.swift; sourceTree = "<group>"; };
+		1A01002A2CE8000100000001 /* GroundItemsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroundItemsPlugin.swift; sourceTree = "<group>"; };
+		1A01002C2CE8000100000001 /* XpTrackerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XpTrackerPlugin.swift; sourceTree = "<group>"; };
+		1A01002E2CE8000100000001 /* IdleNotifierPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleNotifierPlugin.swift; sourceTree = "<group>"; };
+		1A0100302CE8000100000001 /* MenuEntrySwapperPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuEntrySwapperPlugin.swift; sourceTree = "<group>"; };
+		1A0100312CE8000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A0100322CE8000100000001 /* Entitlements.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Entitlements.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1A0100FF2CE8000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A0100E02CE8000000000001 = {
+			isa = PBXGroup;
+			children = (
+				1A0100E12CE8000000000001 /* Sources */,
+				1A0100312CE8000100000001 /* Info.plist */,
+				1A0100322CE8000100000001 /* Entitlements.plist */,
+				1A0100002CE8000000000001 /* RuneLiteMobile.app */,
+			);
+			sourceTree = "<group>";
+		};
+		1A0100E12CE8000000000001 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				1A0100022CE8000100000001 /* AppDelegate.swift */,
+				1A0100042CE8000100000001 /* SceneDelegate.swift */,
+				1A0100062CE8000100000001 /* RuneLiteApp.swift */,
+				1A0100082CE8000100000001 /* WorldPoint.swift */,
+				1A01000A2CE8000100000001 /* LocalPoint.swift */,
+				1A01000C2CE8000100000001 /* Perspective.swift */,
+				1A01000E2CE8000100000001 /* Item.swift */,
+				1A0100102CE8000100000001 /* Actor.swift */,
+				1A0100122CE8000100000001 /* EventBus.swift */,
+				1A0100142CE8000100000001 /* GameState.swift */,
+				1A0100162CE8000100000001 /* PluginManager.swift */,
+				1A0100182CE8000100000001 /* JagexOAuthManager.swift */,
+				1A01001A2CE8000100000001 /* KeychainHelper.swift */,
+				1A01001C2CE8000100000001 /* JagexComplianceEngine.swift */,
+				1A01001E2CE8000100000001 /* MetalOverlayRenderer.swift */,
+				1A0100202CE8000100000001 /* Shaders.metal */,
+				1A0100222CE8000100000001 /* OverlayViewController.swift */,
+				1A0100242CE8000100000001 /* PluginSettingsView.swift */,
+				1A0100262CE8000100000001 /* PluginProtocol.swift */,
+				1A0100282CE8000100000001 /* TileIndicatorsPlugin.swift */,
+				1A01002A2CE8000100000001 /* GroundItemsPlugin.swift */,
+				1A01002C2CE8000100000001 /* XpTrackerPlugin.swift */,
+				1A01002E2CE8000100000001 /* IdleNotifierPlugin.swift */,
+				1A0100302CE8000100000001 /* MenuEntrySwapperPlugin.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A0100F02CE8000000000001 /* RuneLiteMobile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0100F42CE8000000000001 /* Build configuration list for PBXNativeTarget "RuneLiteMobile" */;
+			buildPhases = (
+				1A0100FE2CE8000000000001 /* Sources */,
+				1A0100FF2CE8000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RuneLiteMobile;
+			productName = RuneLiteMobile;
+			productReference = 1A0100002CE8000000000001 /* RuneLiteMobile.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1A0100E22CE8000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					1A0100F02CE8000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 1A0100E32CE8000000000001 /* Build configuration list for PBXProject "RuneLiteMobile" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1A0100E02CE8000000000001;
+			productRefGroup = 1A0100E02CE8000000000001;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A0100F02CE8000000000001 /* RuneLiteMobile */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A0100FE2CE8000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0100012CE8000100000001 /* AppDelegate.swift in Sources */,
+				1A0100032CE8000100000001 /* SceneDelegate.swift in Sources */,
+				1A0100052CE8000100000001 /* RuneLiteApp.swift in Sources */,
+				1A0100072CE8000100000001 /* WorldPoint.swift in Sources */,
+				1A0100092CE8000100000001 /* LocalPoint.swift in Sources */,
+				1A01000B2CE8000100000001 /* Perspective.swift in Sources */,
+				1A01000D2CE8000100000001 /* Item.swift in Sources */,
+				1A01000F2CE8000100000001 /* Actor.swift in Sources */,
+				1A0100112CE8000100000001 /* EventBus.swift in Sources */,
+				1A0100132CE8000100000001 /* GameState.swift in Sources */,
+				1A0100152CE8000100000001 /* PluginManager.swift in Sources */,
+				1A0100172CE8000100000001 /* JagexOAuthManager.swift in Sources */,
+				1A0100192CE8000100000001 /* KeychainHelper.swift in Sources */,
+				1A01001B2CE8000100000001 /* JagexComplianceEngine.swift in Sources */,
+				1A01001D2CE8000100000001 /* MetalOverlayRenderer.swift in Sources */,
+				1A01001F2CE8000100000001 /* Shaders.metal in Sources */,
+				1A0100212CE8000100000001 /* OverlayViewController.swift in Sources */,
+				1A0100232CE8000100000001 /* PluginSettingsView.swift in Sources */,
+				1A0100252CE8000100000001 /* PluginProtocol.swift in Sources */,
+				1A0100272CE8000100000001 /* TileIndicatorsPlugin.swift in Sources */,
+				1A0100292CE8000100000001 /* GroundItemsPlugin.swift in Sources */,
+				1A01002B2CE8000100000001 /* XpTrackerPlugin.swift in Sources */,
+				1A01002D2CE8000100000001 /* IdleNotifierPlugin.swift in Sources */,
+				1A01002F2CE8000100000001 /* MenuEntrySwapperPlugin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1A0100E42CE8000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A0100E52CE8000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1A0100F52CE8000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.runelite.mobile;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A0100F62CE8000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.runelite.mobile;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A0100E32CE8000000000001 /* Build configuration list for PBXProject "RuneLiteMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0100E42CE8000000000001 /* Debug */,
+				1A0100E52CE8000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0100F42CE8000000000001 /* Build configuration list for PBXNativeTarget "RuneLiteMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0100F52CE8000000000001 /* Debug */,
+				1A0100F62CE8000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 1A0100E22CE8000000000001 /* Project object */;
+}

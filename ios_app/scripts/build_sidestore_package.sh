@@ -1,0 +1,1 @@
+../../scripts/build_sidestore_package.sh
