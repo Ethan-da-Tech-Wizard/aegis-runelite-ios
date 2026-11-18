@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: WorldPoint.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Three-Dimensional World Coordinate Tile Model in OSRS.
 //          Encapsulates global Gielinor grid positions (X, Y), plane elevations
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Grid Coordinate Systems:
+// Architecture Overview & Grid Coordinate Systems:
 // ==============================================================================
 // In computer science and game development, virtual worlds are modeled using
 // spatial coordinate grids.

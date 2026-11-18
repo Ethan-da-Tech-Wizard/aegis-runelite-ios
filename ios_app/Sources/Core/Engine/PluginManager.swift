@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: PluginManager.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Central Plugin Registry and Lifecycle Controller for RuneLite Mobile iOS.
 //          Manages registration, persistent enabled/disabled states via UserDefaults,
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Plugin Architecture:
+// Architecture Overview & Plugin Architecture:
 // ==============================================================================
 // In extensible software design, an application core should be open for extension
 // but closed for modification (the Open-Closed Principle).

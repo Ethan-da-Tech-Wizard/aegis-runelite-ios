@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: bridge_daemon/event_stream_protocol.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Protocol & Wire Data Types for iOS RuneLite Bridge.
 #          Defines strongly-typed dataclasses for game overlay elements,
@@ -12,7 +11,7 @@
 """bridge_daemon/event_stream_protocol.py — Protocol & Wire Types for iOS RuneLite Bridge.
 
 ==============================================================================
-CIS 156 Educational Overview:
+Architecture Overview:
 ==============================================================================
 In modern distributed computing, network communication requires an agreed-upon
 "wire protocol" — a set of standard data structures and conventions that both

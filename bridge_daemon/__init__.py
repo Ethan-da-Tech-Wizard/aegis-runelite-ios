@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: bridge_daemon/__init__.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Headless Streaming Bridge Daemon Package Initializer.
 #          Defines the public interface for the zero-credential local streaming
@@ -12,9 +11,9 @@
 """Aegis RuneLite iOS - Headless Streaming Bridge Daemon.
 
 ==============================================================================
-CIS 156 Educational Architecture Overview:
+production architecture Educational Architecture Overview:
 ==============================================================================
-In introductory computer science (CIS 156), client-server architecture forms
+In software engineering, client-server architecture forms
 the foundation of networked systems. In this architecture:
 1. Server (Desktop Daemon): Runs headless Old School RuneScape logic and RuneLite
    plugins at a strict 600ms tick rate (the internal engine heartbeat of RuneScape).

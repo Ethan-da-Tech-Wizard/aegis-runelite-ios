@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: IdleNotifierPlugin.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Idle & Low-Resource Alert Plugin with iOS Haptic & Notification Engine.
 //          Monitors player character animation states to detect when AFK skilling
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & State Monitoring:
+// Architecture Overview & State Monitoring:
 // ==============================================================================
 // In event-driven system design, background monitors track state changes and alert
 // users when tasks reach completion.

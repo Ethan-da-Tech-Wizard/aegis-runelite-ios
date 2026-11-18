@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: Item.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Item & Loot Value Tier Model for RuneLite Mobile iOS.
 //          Models ground and inventory items, computes Grand Exchange and High
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Domain Data Modeling:
+// Architecture Overview & Domain Data Modeling:
 // ==============================================================================
 // In video game economy modeling, items carry distinct identifiers, quantities,
 // and market valuations.

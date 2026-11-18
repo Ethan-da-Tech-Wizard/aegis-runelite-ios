@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: SceneDelegate.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Window Scene Lifecycle Delegate for RuneLite Mobile iOS.
 //          Configures the primary UIWindow, instantiates the root
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & iOS Scene Architecture:
+// Architecture Overview & iOS Scene Architecture:
 // ==============================================================================
 // In iOS 13 and later, Apple separated process lifecycle (`AppDelegate`) from
 // user interface lifecycle (`SceneDelegate`). This enables iPadOS devices to

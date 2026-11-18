@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: KeychainHelper.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Secure Enclave & Keychain Wrapper for Sensitive OAuth2 Tokens.
 //          Provides hardware-backed cryptographic storage for Jagex Account
@@ -10,9 +9,9 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Secure Key Management:
+// Architecture Overview & Secure Key Management:
 // ==============================================================================
-// In computer security (CIS 156), storing credentials or cryptographic tokens
+// In computer security, storing credentials or cryptographic tokens
 // in plain text (e.g. `UserDefaults`, files, or logs) is a major vulnerability.
 // If a mobile device is backed up or inspected, plain text files can be read.
 //

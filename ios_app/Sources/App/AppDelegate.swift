@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: AppDelegate.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Primary Application Lifecycle Delegate for RuneLite Mobile iOS.
 //          Handles initial application launch configuration, Jagex OAuth2 PKCE
@@ -9,7 +8,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Mobile Application Lifecycle:
+// Architecture Overview & Mobile Application Lifecycle:
 // ==============================================================================
 // In iOS development (Swift / UIKit), the `UIApplicationDelegate` acts as the
 // central controller for OS-level events. When an application launches, enters

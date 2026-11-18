@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: tests/test_compliance.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Automated Jagex Compliance & Architecture Verification Test Suite.
 #          Ensures strict adherence to Jagex's Third-Party Client Rules:
@@ -14,7 +13,7 @@
 """tests/test_compliance.py — Automated Jagex Compliance & Architecture Verification Test Suite.
 
 ==============================================================================
-CIS 156 Educational Overview & Regulatory Compliance:
+Architecture Overview & Regulatory Compliance:
 ==============================================================================
 In commercial and open-source software engineering, software must often adhere to
 strict legal, security, and game-integrity guidelines set by platform owners.

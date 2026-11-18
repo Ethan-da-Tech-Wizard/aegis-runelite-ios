@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: OverlayViewController.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Primary UIViewController for RuneLite Mobile iOS.
 //          Hosts the transparent MTKView with 120Hz ProMotion support, floating
@@ -11,9 +10,9 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Mobile View Controller Architecture:
+// Architecture Overview & Mobile View Controller Architecture:
 // ==============================================================================
-// In UIKit application architecture (CIS 156), a `UIViewController` coordinates
+// In UIKit application architecture, a `UIViewController` coordinates
 // user input events, subviews, hardware rendering layers, and modal transitions.
 //
 // Key Subsystems in this View Controller:

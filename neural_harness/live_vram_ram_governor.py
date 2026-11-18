@@ -2,7 +2,6 @@
 # ==============================================================================
 # Program: neural_harness/live_vram_ram_governor.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: HOWITZER Live VRAM & RAM Working-Set Governor.
 #          Non-destructively compresses active RAM and VRAM footprints of running
@@ -15,7 +14,7 @@
 HOWITZER Live VRAM & RAM Working-Set Governor (`live_vram_ram_governor.py`).
 
 ==============================================================================
-CIS 156 Educational Overview & Advanced Operating Systems Architecture:
+Architecture Overview & Advanced Operating Systems Architecture:
 ==============================================================================
 In modern operating systems, memory management is divided into virtual memory,
 physical resident set size (RSS), proportional set size (PSS), and GPU video

@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: Perspective.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: 3D-to-2D Perspective Projection Engine for RuneLite Mobile iOS.
 //          Converts 3D OSRS scene points into 2D Apple Metal screen coordinates
@@ -10,9 +9,9 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & 3D Graphics Mathematics:
+// Architecture Overview & 3D Graphics Mathematics:
 // ==============================================================================
-// In computer graphics (CIS 156 / Graphics Engineering), rendering a 3D virtual
+// In computer graphics, rendering a 3D virtual
 // world onto a flat 2D screen requires a "perspective projection pipeline".
 //
 // Pipeline Mathematics Step-by-Step:

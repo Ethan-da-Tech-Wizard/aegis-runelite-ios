@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: PluginHubClient.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Official RuneLite Plugin Hub Client & Secure Package Manager for iOS.
 //          Queries plugin repository manifests, validates SHA-256 cryptographic
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Package Management Architecture:
+// Architecture Overview & Package Management Architecture:
 // ==============================================================================
 // In software distribution, a "Package Manager" automates the discovery, download,
 // cryptographic integrity verification, installation, and removal of modular software.

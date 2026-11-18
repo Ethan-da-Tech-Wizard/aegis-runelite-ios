@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: bridge_daemon/security_gate.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Zero-Credential Security Boundary and Data Scrubbing Engine.
 #          Inspects, audits, and filters all data transmitted across the network
@@ -12,7 +11,7 @@
 """bridge_daemon/security_gate.py — Zero-Credential Security Boundary.
 
 ==============================================================================
-CIS 156 Educational Overview & Security Engineering:
+Architecture Overview & Security Engineering:
 ==============================================================================
 In cybersecurity and computer systems engineering, the principle of "Fail-Closed"
 dictates that if a system encounters unexpected data, ambiguous states, or potential
@@ -25,7 +24,7 @@ Why This Security Boundary Is Essential:
    this agility obstacle green at coordinates (120, 340)"). It NEVER needs the player's
    password, bank PIN, or session cookies.
 2. Recursive Deep Sanitization: Dictionaries and lists can be nested arbitrarily deep.
-   In CIS 156, we study recursive traversal — visiting every nested branch of a tree
+   In computer science, recursive traversal — visiting every nested branch of a tree
    or dictionary to verify that no banned key names or high-entropy secret tokens are present.
 3. Fail-Closed Exception Handling: If even a single forbidden key (such as `password`
    or `bank_pin`) is detected, a custom `SecurityViolation` exception is raised,
@@ -53,7 +52,7 @@ SUSPICIOUS_VAL_PATTERN: re.Pattern = re.compile(r"^[A-Za-z0-9+/=_-]{32,}$")
 class SecurityViolation(ValueError):
     """Custom exception raised when an outbound packet violates the zero-credential policy.
 
-    In CIS 156, inheriting from standard exception classes (like `ValueError`) allows
+    In production software engineering, inheriting from standard exception classes (like `ValueError`) allows
     callers to handle domain-specific errors while remaining compatible with standard
     error-handling idioms.
     """

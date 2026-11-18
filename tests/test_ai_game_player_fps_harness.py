@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: tests/test_ai_game_player_fps_harness.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Unit Test Suite for AI Game Player, Offscreen OCR/HID Controller &
 #          Live FPS/Frame-Time Benchmark Rating Harness.
@@ -13,7 +12,7 @@
 """tests/test_ai_game_player_fps_harness.py — Unit test suite for Neural Gamer FPS Harness.
 
 ==============================================================================
-CIS 156 Educational Overview & Test Verification:
+Architecture Overview & Test Verification:
 ==============================================================================
 This test module verifies complex game engine telemetry and robotics benchmarking:
 1. Headless Video Isolation: Confirms `SDL_VIDEODRIVER=dummy` is active, guaranteeing

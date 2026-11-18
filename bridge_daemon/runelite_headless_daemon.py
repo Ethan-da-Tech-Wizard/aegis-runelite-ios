@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: bridge_daemon/runelite_headless_daemon.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Headless RuneLite Mobile Streaming Daemon.
 #          Simulates the 600ms OSRS engine game tick loop, manages active RuneLite
@@ -12,7 +11,7 @@
 """bridge_daemon/runelite_headless_daemon.py — Headless RuneLite Mobile Streaming Daemon.
 
 ==============================================================================
-CIS 156 Educational Overview & Game Loop Architecture:
+Architecture Overview & Game Loop Architecture:
 ==============================================================================
 A "game loop" is the core iterative cycle of every video game engine. It performs
 three primary stages in sequence:
@@ -168,7 +167,7 @@ class HeadlessRuneLiteDaemon:
     def step_game_tick(self) -> Dict[str, Any]:
         """Simulate one discrete 600ms OSRS game tick and generate sanitized overlays.
 
-        In CIS 156, we learn how complex systems build up visual scenes by
+        In systems architecture, how complex systems build up visual scenes by
         querying individual component subsystems. Here, each active plugin
         contributes its visual overlay elements to the batch packet.
 

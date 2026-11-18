@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: SandboxedRuntime.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Sandboxed JavaScriptCore Runtime for Safe Community Plugin Execution.
 //          Enforces 100% compliance with Apple App Store Guideline 2.5.2 & W^X
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Secure Sandboxing:
+// Architecture Overview & Secure Sandboxing:
 // ==============================================================================
 // In software systems security, executing third-party or untrusted community code
 // requires an isolated "sandbox" environment to prevent malicious behavior.

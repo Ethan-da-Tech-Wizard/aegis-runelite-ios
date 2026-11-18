@@ -1,7 +1,6 @@
 # ==============================================================================
 # Program: scripts/build_ios_runelite_standalone.py
 # Programmer: Ethan-da-Tech-Wizard
-# Course: CIS 156 / Advanced Systems
 # Last Modified: November 18, 2026
 # Purpose: Standalone iOS RuneLite File & WebClip Configuration Profile Builder.
 #          Assembles the single-file offline HTML5/WASM RuneLite client, validates
@@ -13,7 +12,7 @@
 """scripts/build_ios_runelite_standalone.py — Standalone iOS RuneLite File & WebClip Builder.
 
 ==============================================================================
-CIS 156 Educational Overview & Mobile Packaging:
+Architecture Overview & Mobile Packaging:
 ==============================================================================
 In modern mobile application distribution, developers often need ways to deliver
 software without relying exclusively on closed app stores. Apple provides a

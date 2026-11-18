@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: MenuEntrySwapperPlugin.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Jagex-Compliant 1:1 Mobile Menu Entry Swapper Plugin for iOS.
 //          Reorders context menu options (e.g. promoting "Bank" over "Talk-to")
@@ -10,7 +9,7 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & Input Prioritization:
+// Architecture Overview & Input Prioritization:
 // ==============================================================================
 // In user interface design, reducing the number of unnecessary clicks improves
 // accessibility and user ergonomics.

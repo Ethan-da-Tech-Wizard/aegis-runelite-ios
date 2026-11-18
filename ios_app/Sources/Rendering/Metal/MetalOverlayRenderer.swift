@@ -1,7 +1,6 @@
 // ==============================================================================
 // Program: MetalOverlayRenderer.swift
 // Programmer: Ethan-da-Tech-Wizard
-// Course: CIS 156 / Advanced Systems
 // Last Modified: November 18, 2026
 // Purpose: Hardware-Accelerated Apple Metal 2D/3D Overlay Renderer.
 //          Renders high-performance, low-latency visual HUD indicators, ground tile
@@ -10,9 +9,9 @@
 // ==============================================================================
 
 // ==============================================================================
-// CIS 156 Educational Overview & GPU Graphics Pipelines:
+// Architecture Overview & GPU Graphics Pipelines:
 // ==============================================================================
-// In computer systems architecture (CIS 156 / Computer Graphics), rendering
+// In computer systems architecture, rendering
 // graphics on the CPU (software rendering) is slow and battery-intensive.
 // Modern operating systems utilize dedicated Graphics Processing Units (GPUs).
 //
