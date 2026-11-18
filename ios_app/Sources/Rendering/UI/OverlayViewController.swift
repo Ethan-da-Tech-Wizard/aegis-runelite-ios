@@ -1,13 +1,7 @@
-// ==============================================================================
-// Program: OverlayViewController.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Primary UIViewController for RuneLite Mobile iOS.
-//          Hosts the transparent MTKView with 120Hz ProMotion support, floating
-//          HUD controls (Settings gear, rotating North compass), pinch-to-zoom
-//          recognizer, click animation markers (red X / yellow X), and 350ms
-//          long-press right-click context menu presentation.
-// ==============================================================================
+// Program: aegis-runelite-ios - OverlayViewController.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Main view controller hosting the transparent Metal view, HUD controls and gesture handling.
 
 // ==============================================================================
 // Overview: Mobile View Controller Architecture:
@@ -46,6 +40,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
     private var simulatedTickTimer: Timer?
     private var activeContextMenu: UIView?
 
+    /// Builds the Metal view, HUD controls and gesture recognizers once the view loads.
     public override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
@@ -118,6 +113,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         view.addGestureRecognizer(pinch)
     }
 
+    /// Handles the pinch gesture to adjust the camera zoom.
     @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
         if recognizer.state == .changed {
             TouchAndCameraPipeline.shared.handlePinchZoom(scaleDelta: recognizer.scale)
@@ -158,6 +154,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
 
     // MARK: - Touch Handling (1:1 Jagex Touch Compliance + OSRS Mobile Gestures)
 
+    /// Validates each new touch, then forwards it to the touch pipeline.
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         dismissContextMenu()
         for touch in touches {
@@ -167,16 +164,19 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         super.touchesBegan(touches, with: event)
     }
 
+    /// Forwards moving touches to the touch pipeline.
     public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         TouchAndCameraPipeline.shared.handleTouchesMoved(touches, in: view)
         super.touchesMoved(touches, with: event)
     }
 
+    /// Forwards lifted touches to the touch pipeline.
     public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         TouchAndCameraPipeline.shared.handleTouchesEnded(touches, in: view)
         super.touchesEnded(touches, with: event)
     }
 
+    /// Forwards cancelled touches (for example a system interruption) to the touch pipeline.
     public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         TouchAndCameraPipeline.shared.handleTouchesCancelled(touches, in: view)
         super.touchesCancelled(touches, with: event)
@@ -184,14 +184,17 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
 
     // MARK: - TouchAndCameraDelegate Implementations
 
+    /// Shows a red marker for interactions and a yellow marker for ground taps.
     public func didTriggerClickMarker(at point: CGPoint, type: ClickMarkerType) {
         showClickAnimation(at: point, color: type == .redX ? .red : .yellow)
     }
 
+    /// Presents the context menu for the pressed tile.
     public func didTriggerContextMenu(at point: CGPoint, worldPoint: WorldPoint) {
         showContextMenu(at: point, worldPoint: worldPoint)
     }
 
+    /// Rotates the compass button to match the new camera yaw.
     public func didUpdateCamera(yaw: Int, pitch: Int, zoom: Int) {
         // Update compass icon rotation based on camera yaw
         let angleRadians = Double(yaw) / 2048.0 * (2.0 * .pi)

@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: bridge_daemon/event_stream_protocol.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Protocol & Wire Data Types for iOS RuneLite Bridge.
-#          Defines strongly-typed dataclasses for game overlay elements,
-#          per-tick batch packets, touch input serialization, and plugin
-#          state management between the desktop daemon and mobile client.
-# ==============================================================================
+# Program: aegis-runelite-ios - event_stream_protocol.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Defines the typed dataclasses for overlay elements, per-tick batch packets, touch input, and plugin state exchanged between the desktop daemon and the mobile client.
 
 """bridge_daemon/event_stream_protocol.py — Protocol & Wire Types for iOS RuneLite Bridge.
 
@@ -19,8 +14,8 @@ sender and receiver understand.
 
 Why We Use Dataclasses in Python:
 Python's `@dataclass` decorator automatically generates boilerplate methods like
-`__init__()`, `__repr__()`, and `__eq__()`. This allows computer science students
-and software engineers to focus on defining clean, strongly-typed domain models
+`__init__()`, `__repr__()`, and `__eq__()`. This allows developers
+to focus on defining clean, strongly-typed domain models
 rather than repetitive constructor code.
 
 Why Tick-Based Pacing:

@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Program: scripts/build_ipa.sh
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Standalone iOS RuneLite IPA Packaging Tool.
-#          Compiles the native Swift/Metal project into a signed or unsigned
-#          iOS application bundle (.app) and archives it into a standard iOS
-#          Application Archive (.ipa) for distribution via SideStore or AltStore.
-# ==============================================================================
+# Program: aegis-runelite-ios - build_ipa.sh
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Packaging script that builds the native Swift/Metal project into an iOS app bundle and archives it as an .ipa for SideStore or AltStore distribution.
 
 # ==============================================================================
 # Overview — iOS Packaging Pipeline:
 # ==============================================================================
-# In Unix systems programming, shell scripts automate complex multi-stage
-# build processes.
+# Shell scripts automate complex multi-stage build processes like this one.
 #
 # An iOS .ipa file is essentially a standard zip archive with a specific structure:
 #   RuneLiteMobile.ipa

@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: neural_harness/hid_safety.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Physical Hardware HID Activity Probe & Offscreen Safety Guard.
-#          Monitors hardware interrupt lines, USB request block counters,
-#          pseudoterminal access times, and window manager cursor positions
-#          to detect physical human input and prevent automated harness interference.
-# ==============================================================================
+# Program: aegis-runelite-ios - hid_safety.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Safety guard that probes hardware, terminal, and cursor activity to detect real human input so automated harness actions can back off.
 
 """neural_harness/hid_safety.py — Physical Hardware HID Activity Probe & Offscreen Safety Guard.
 

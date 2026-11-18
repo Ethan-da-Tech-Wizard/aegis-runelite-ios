@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: AppDelegate.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Primary Application Lifecycle Delegate for RuneLite Mobile iOS.
-//          Handles initial application launch configuration, Jagex OAuth2 PKCE
-//          deep-link URL scheme routing, and multi-window scene configurations.
-// ==============================================================================
+// Program: aegis-runelite-ios - AppDelegate.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Application lifecycle delegate that handles launch, OAuth deep-link URL callbacks and scene configuration.
 
 // ==============================================================================
 // Overview: Mobile Application Lifecycle:
@@ -25,6 +21,7 @@
 import UIKit
 
 @main
+/// Process-level delegate that receives launch, deep-link and scene-session callbacks from iOS.
 class AppDelegate: UIResponder, UIApplicationDelegate {
     // The primary user interface window for the application (legacy / single-window support)
     var window: UIWindow?

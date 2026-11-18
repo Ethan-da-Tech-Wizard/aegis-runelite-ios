@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: LocalPoint.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Fine-Grained 2D Coordinate Model within OSRS 104x104 Local Scene Chunk.
-//          Enables sub-tile positioning (128 fine units per tile), fine-grained
-//          character interpolation, and perspective projection preparation.
-// ==============================================================================
+// Program: aegis-runelite-ios - LocalPoint.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Sub-tile coordinate model for positions inside the 104x104 local scene.
 
 // ==============================================================================
 // Overview: Fixed-Point Sub-Tile Coordinates:

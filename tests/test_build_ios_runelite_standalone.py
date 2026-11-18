@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: tests/test_build_ios_runelite_standalone.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Unit Test Suite for Standalone iOS RuneLite Builder.
-#          Verifies that building the standalone client generates valid HTML5
-#          and .mobileconfig artifacts, enforces zero-joystick restrictions,
-#          and validates authentic OSRS mobile touch tokens.
-# ==============================================================================
+# Program: aegis-runelite-ios - test_build_ios_runelite_standalone.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Unit tests for the standalone builder checking that it emits valid HTML5 and .mobileconfig output and enforces the touch-gesture rules.
 
 """tests/test_build_ios_runelite_standalone.py — Tests for Standalone iOS RuneLite Builder.
 

@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: PluginSettingsView.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: SwiftUI Configuration & Jagex Account Authentication Modal View.
-//          Provides toggle controls for bundled plugins (Tile Indicators,
-//          Ground Items, XP Tracker, Idle Notifier), triggers OAuth2 PKCE login,
-//          displays Jagex compliance verification status, and presents Plugin Hub.
-// ==============================================================================
+// Program: aegis-runelite-ios - PluginSettingsView.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: SwiftUI settings view with plugin toggles, login control, compliance status and plugin hub access.
 
 // ==============================================================================
 // Overview: SwiftUI Form Architecture:
@@ -35,6 +30,7 @@ public struct PluginSettingsView: View {
     @State private var isShowingPluginHub: Bool = false
     @Environment(\.presentationMode) var presentationMode
 
+    /// Creates the settings view.
     public init() {}
 
     public var body: some View {

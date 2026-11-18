@@ -1,12 +1,8 @@
 // swift-tools-version: 5.9
-// ==============================================================================
-// Program: Package.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Swift Package Manager (SPM) Manifest for RuneLiteMobile.
-//          Configures the build targets, platforms (iOS 16+), library products
-//          (RuneLiteCore), and executable targets (RuneLiteMobile).
-// ==============================================================================
+// Program: aegis-runelite-ios - Package.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Swift Package Manager manifest defining the targets, platforms and products.
 
 // ==============================================================================
 // Overview: Swift Package Manager:

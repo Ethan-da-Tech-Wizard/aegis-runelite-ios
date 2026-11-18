@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: PluginHubView.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: In-App RuneLite Plugin Hub Browser & Package Manager for iOS.
-//          Allows players to search, filter by category tags, install, toggle,
-//          and remove verified community plugins (Loot Tracker, Quest Helper).
-// ==============================================================================
+// Program: aegis-runelite-ios - PluginHubView.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: SwiftUI view for browsing, installing, toggling and removing hub plugins.
 
 // ==============================================================================
 // Overview: Filtered List Architectures:
@@ -38,6 +34,7 @@ public struct PluginHubView: View {
 
     private let categories = ["All", "pvm", "skilling", "utility", "quests", "combat"]
 
+    /// Creates the hub view.
     public init() {}
 
     /// Computed property returning filtered plugins matching both category and search query.

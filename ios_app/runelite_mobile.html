@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+Program: aegis-runelite-ios - runelite_mobile.html
+Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+Last Modified: 2026-11-18
+Purpose: Self-contained single-page RuneLite-style mobile client that draws an isometric game scene on a canvas with touch controls, HUD and plugin hub.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -925,6 +931,7 @@
       prayerGrid.appendChild(slot);
     });
 
+    // Flip a prayer on or off and update its button state.
     function togglePrayer(p) {
       p.active = !p.active;
       const el = document.getElementById(`prayer_${p.id}`);
@@ -1033,6 +1040,7 @@
 
     let currentHubCategory = "all";
 
+    // Rebuild the plugin hub list using the current search text and category filter.
     function renderHubPlugins() {
       hubPluginList.innerHTML = "";
       const search = (hubSearchInput.value || "").toLowerCase();
@@ -1303,6 +1311,7 @@
     const contextMenu = document.getElementById("osrsContextMenu");
     const menuOptions = document.getElementById("contextMenuOptions");
 
+    // Build and show the right-click menu for the world position under the given screen point.
     function triggerContextMenu(clientX, clientY) {
       const world = screenToWorld(clientX, clientY);
       menuOptions.innerHTML = "";
@@ -1364,6 +1373,7 @@
       contextMenu.style.display = "flex";
     }
 
+    // Hide the context menu.
     function hideContextMenu() {
       contextMenu.style.display = "none";
     }
@@ -1373,6 +1383,7 @@
     // ==========================================
     let lastTick = Date.now();
 
+    // Per-frame loop: schedules the next frame and runs a game tick when enough time has passed.
     function gameLoop() {
       requestAnimationFrame(gameLoop);
 
@@ -1395,6 +1406,7 @@
       renderMinimap();
     }
 
+    // Advance the game by one tick, moving the player toward its destination.
     function onGameTick() {
       // Step True Tile to destination
       if (Math.hypot(state.player.destX - state.player.trueX, state.player.destY - state.player.trueY) > 0.5) {
@@ -1408,6 +1420,7 @@
       }
     }
 
+    // Draw one frame of the game canvas.
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1549,6 +1562,7 @@
       ctx.shadowBlur = 0;
     }
 
+    // Outline (and optionally fill) one tile as a projected quadrilateral.
     function drawTileOutline(tileX, tileY, strokeColor, lineWidth = 2, fillColor = null) {
       const p1 = worldToScreen(tileX, tileY);
       const p2 = worldToScreen(tileX + 1, tileY);

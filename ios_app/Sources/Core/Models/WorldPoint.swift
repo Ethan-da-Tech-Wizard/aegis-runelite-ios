@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: WorldPoint.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Three-Dimensional World Coordinate Tile Model in OSRS.
-//          Encapsulates global Gielinor grid positions (X, Y), plane elevations
-//          (0...3), Chebyshev distance calculations for pathfinding, and
-//          conversion into 104x104 local scene chunk coordinates.
-// ==============================================================================
+// Program: aegis-runelite-ios - WorldPoint.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: World coordinate model with plane, Chebyshev distance and conversion to local scene coordinates.
 
 // ==============================================================================
 // Overview: Grid Coordinate Systems:
@@ -20,7 +15,7 @@
 //   tile (3222, 3218), while Varrock center sits around (3212, 3422).
 // - Plane Layer (Z / Elevation): Discrete height layers numbered 0 through 3.
 //   Plane 0 represents the ground floor. Plane 1 is the 2nd story of a building
-//   or rooftop agility course. Planes 2 and 3 represent higher towers.
+//   or rooftop agility route. Planes 2 and 3 represent higher towers.
 //
 // Distance Metrics:
 // 1. Chebyshev Distance (`distanceTo`):

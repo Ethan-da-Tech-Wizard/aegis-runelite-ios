@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: JagexOAuthManager.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Zero-Credential Jagex Account OAuth2 PKCE Authentication Engine.
-//          Implements RFC 7636 (Proof Key for Code Exchange) using Apple's
-//          ASWebAuthenticationSession to securely authenticate Old School
-//          RuneScape players without storing, observing, or handling raw passwords.
-// ==============================================================================
+// Program: aegis-runelite-ios - JagexOAuthManager.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: OAuth2 PKCE authentication manager that signs players in through ASWebAuthenticationSession without handling passwords.
 
 // ==============================================================================
 // Overview: Cryptographic Protocol Engineering:
@@ -50,6 +45,7 @@ public struct JagexTokenResponse: Codable, Sendable {
     public let expiresIn: Int
     public let gameToken: String?
 
+    // Maps the snake_case keys in the server's JSON response onto the camelCase Swift properties.
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
@@ -81,6 +77,7 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
     private var currentCodeVerifier: String?
     private var authSession: ASWebAuthenticationSession?
 
+    // Private so the shared singleton is the only instance.
     private override init() {
         super.init()
         checkExistingAuth()

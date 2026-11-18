@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: Item.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Item & Loot Value Tier Model for RuneLite Mobile iOS.
-//          Models ground and inventory items, computes Grand Exchange and High
-//          Alchemy valuations, and categorizes items into visual color tiers
-//          for high-visibility HUD rendering.
-// ==============================================================================
+// Program: aegis-runelite-ios - Item.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Item model with Grand Exchange and High Alchemy valuation and color tiers for HUD display.
 
 // ==============================================================================
 // Overview: Domain Data Modeling:
@@ -29,6 +24,7 @@ import Foundation
 
 /// Value tier classification for Ground Items plugin.
 public enum ItemValueTier: String, Codable, Sendable {
+    // Lowest-priority tier, drawn in gray.
     case hidden
     case low       // < 10,000 GP
     case medium    // 10,000 ... 100,000 GP

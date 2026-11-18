@@ -1,15 +1,7 @@
-// ==============================================================================
-// Program: TouchAndCameraPipeline.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: 1:1 Authentic OSRS Mobile Touch & Camera Gesture Pipeline.
-//          Implements genuine mobile touch mechanics:
-//          - 200ms tap-to-walk (yellow X) and interact (red X)
-//          - 350ms long-press with Taptic haptic feedback for right-click context menu
-//          - 2-finger camera orbit (Yaw horizontal, Pitch vertical)
-//          - Pinch-to-zoom (180...896 zoom bounds)
-//          - Hardware capacitive digitizer contact verification (no synthetic bot events).
-// ==============================================================================
+// Program: aegis-runelite-ios - TouchAndCameraPipeline.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Touch and camera gesture pipeline handling taps, long presses, camera orbit and pinch zoom from real touches.
 
 // ==============================================================================
 // Overview: Human-Computer Interaction (HCI):
@@ -34,11 +26,17 @@ import UIKit
 
 /// Gesture states mirroring OSRS mobile touch interaction engine.
 public enum TouchGestureState {
+    // No touch is active.
     case idle
+    // A finger is down and may still become a tap.
     case possibleTap
+    // The press lasted long enough to open the context menu.
     case longPressing
+    // Two fingers are orbiting the camera.
     case draggingCamera
+    // Two fingers are changing the zoom level.
     case pinchingZoom
+    // A finger is moving while the context menu is open.
     case draggingContextMenu
 }
 
@@ -50,8 +48,11 @@ public enum ClickMarkerType {
 
 /// Delegate protocol for touch and camera actions.
 public protocol TouchAndCameraDelegate: AnyObject {
+    /// Called when a tap should show a click marker at the given screen point.
     func didTriggerClickMarker(at point: CGPoint, type: ClickMarkerType)
+    /// Called when a long press should open the context menu for the tapped tile.
     func didTriggerContextMenu(at point: CGPoint, worldPoint: WorldPoint)
+    /// Called whenever the camera yaw, pitch or zoom changes.
     func didUpdateCamera(yaw: Int, pitch: Int, zoom: Int)
 }
 
@@ -87,6 +88,7 @@ public final class TouchAndCameraPipeline {
 
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .medium)
 
+    // Private so the shared singleton is the only instance.
     private init() {
         hapticFeedback.prepare()
     }

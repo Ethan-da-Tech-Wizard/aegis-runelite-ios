@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: bridge_daemon/server.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Zero-Credential Streaming & WebClip Server for iOS RuneLite.
-#          Hosts the standalone mobile HTML5 web application, exposes REST
-#          endpoints for 600ms game tick overlay streaming (/api/state),
-#          and receives 1:1 hardware touch interaction packets (/api/touch).
-# ==============================================================================
+# Program: aegis-runelite-ios - server.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: HTTP server that hosts the mobile web client and exposes REST endpoints for tick state streaming and touch input.
 
 """bridge_daemon/server.py — Zero-Credential Streaming & WebClip Server for iOS RuneLite.
 
@@ -70,12 +65,12 @@ def get_local_ip() -> str:
     """Discover the primary local area network (LAN) IP address of this host machine.
 
     In networking, computers often have multiple network interfaces
-    (loopback 127.0.0.1, ethernet eth0, Wi-Fi wlan0, and virtual bridges). To tell
+    (loopback, ethernet, Wi-Fi, and virtual bridges). To tell
     an iPhone user which URL to visit on their local Wi-Fi, we must determine the
     machine's outward-facing LAN IP.
 
     Why this technique works:
-    Opening a UDP socket and connecting to an external address (such as Google's 8.8.8.8)
+    Opening a UDP socket and connecting to an external address (such as a well-known public DNS server)
     does NOT transmit any packets over the internet because UDP is connectionless.
     However, the operating system kernel must consult its internal routing table to
     determine which local network interface would be used to reach that destination.
@@ -85,7 +80,7 @@ def get_local_ip() -> str:
         None.
 
     Returns:
-        str: The IPv4 address string (e.g., '192.168.1.50'), or '127.0.0.1' on error.
+        str: The IPv4 address string (a dotted-quad LAN address), or the loopback address on error.
     """
     # Step 1: Create a UDP socket (AF_INET = IPv4, SOCK_DGRAM = Datagram/UDP)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

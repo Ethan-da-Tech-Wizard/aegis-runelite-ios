@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-# ==============================================================================
-# Program: neural_harness/ai_game_player_fps_harness.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: HOWITZER-017 Interactive AI Game Player & FPS Benchmarking Harness.
-#          Provides hermetic offscreen SDL dummy rendering, optical character
-#          recognition (OCR) HUD telemetry, rule-based & neural game action
-#          dispatching, and frame-time pacing benchmarks (1% lows, jitter, VRAM).
-# ==============================================================================
+# Program: aegis-runelite-ios - ai_game_player_fps_harness.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Benchmark harness that simulates offscreen game rendering, reads HUD text via OCR, dispatches rule-based or local-model actions, and rates frame-time pacing (1% lows, jitter, VRAM).
 
 """
 HOWITZER-017: Interactive AI Game Player, Offscreen Frame/OCR Inspector,
@@ -91,6 +86,7 @@ except ImportError:
         from scripts.prompt_injector import probe_linux_hardware_hid_idle_seconds
     except ImportError:
         def probe_linux_hardware_hid_idle_seconds() -> float:
+            """Fallback probe that reports a large idle time (no human input detected)."""
             return 999.0
 
 HOME_DIR = Path.home()
@@ -323,6 +319,7 @@ else:
 
 @dataclass_slots
 class VirtualHIDAction:
+    """Record of one simulated keyboard or mouse action issued during a benchmark frame."""
     frame_index: int
     action_type: str  # KEY_PRESS, MOUSE_CLICK, MOVE, COMBO
     key_or_button: str
@@ -333,11 +330,13 @@ class VirtualHIDAction:
     latency_ms: float
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
 @dataclass_slots
 class DiscoveredGameEntry:
+    """Catalog entry for a game found on disk, with its engine and estimated VRAM/RAM needs."""
     name: str
     category: str  # steam_gamedrive, steam_local_ssd, wyldgms_ue5_mod, emulator_rom_iso, pg_interactive
     path: str
@@ -353,11 +352,13 @@ class DiscoveredGameEntry:
     anti_lag_prescription: str
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
 @dataclass_slots
 class GameBenchmarkRunMetrics:
+    """Frame-time, FPS, and memory metrics measured for one benchmark pass of one game."""
     game_id: str
     mode: str  # "baseline_ungoverned" or "howitzer_014_governed"
     frames_rendered: int
@@ -379,11 +380,13 @@ class GameBenchmarkRunMetrics:
     sample_actions: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
 @dataclass_slots
 class GameComparisonResult:
+    """Side-by-side baseline versus governed benchmark results for a single game."""
     game_id: str
     title: str
     engine: str
@@ -397,6 +400,7 @@ class GameComparisonResult:
     rating_delta: float
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return {
             "game_id": self.game_id,
             "title": self.title,
@@ -509,6 +513,7 @@ def render_hud_text_to_png_bytes(text: str, scale: int = 4) -> bytes:
     raw_scanlines = b"".join(b"\x00" + bytes(row) for row in buf)
 
     def _png_chunk(tag: bytes, payload: bytes) -> bytes:
+        """Build one PNG chunk: length, tag, payload, and CRC32 checksum."""
         crc = zlib.crc32(tag + payload) & 0xFFFFFFFF
         return struct.pack("!I", len(payload)) + tag + payload + struct.pack("!I", crc)
 
@@ -578,7 +583,7 @@ def query_local_llm_game_action(
     timeout_sec: float = 0.45,
 ) -> VirtualHIDAction:
     """
-    Queries the local model on `127.0.0.1:18190` to select the next interactive
+    Queries the local model server (loopback endpoint, see the default argument) to select the next interactive
     game action (`KEY_PRESS`, `MOUSE_CLICK`, `MOVE`, `COMBO`) from the OCR HUD state,
     with an ultra-fast (<0.1ms) tactical heuristic policy fallback so the render loop
     never stalls.
@@ -736,6 +741,7 @@ def discover_all_game_libraries(
     catalog: List[DiscoveredGameEntry] = []
 
     def _add_entry(name: str, category: str, path_obj: Path, default_engine: str, default_vram: int, default_ram: int, default_cache: str, default_fps: int = 60) -> None:
+        """Register one discovered game, merging known-profile overrides with the supplied defaults."""
         prof = KNOWN_GAME_PROFILES.get(name, {})
         engine = str(prof.get("engine", default_engine))
         est_vram = int(prof.get("est_vram_mb", default_vram))
@@ -917,6 +923,7 @@ class OffscreenGameSimulator:
     """
 
     def __init__(self, use_tesseract: bool = True, allow_network_llm: bool = True) -> None:
+        """Initialize the simulator and load its OCR vocabulary and HUD text sources."""
         self.use_tesseract = use_tesseract
         self.allow_network_llm = allow_network_llm
         self.baby_vocab = self._load_baby_game_vocab()
@@ -925,6 +932,7 @@ class OffscreenGameSimulator:
         self.kid_game_stages = self._load_kid_game_stages()
 
     def _load_baby_game_vocab(self) -> List[Tuple[str, str]]:
+        """Read letter/word pairs from the local game's key definitions file, if present."""
         keys_js = PG_ROOT / "baby_game" / "keys.js"
         vocab: List[Tuple[str, str]] = []
         if keys_js.exists():
@@ -934,6 +942,7 @@ class OffscreenGameSimulator:
         return vocab or [("A", "APPLE"), ("B", "BLASTOISE"), ("C", "CHARIZARD"), ("P", "PIKACHU")]
 
     def _load_osrs_regions(self) -> List[str]:
+        """Read map region labels from the local map script, if present."""
         map_js = PG_ROOT / "OSRS" / "map_canvas.js"
         regions: List[str] = []
         if map_js.exists():
@@ -943,6 +952,7 @@ class OffscreenGameSimulator:
         return regions or ["MISTHALIN", "ASGARNIA", "KANDARIN", "GREAT KOUREND"]
 
     def _load_ult_gaming_hud(self) -> List[str]:
+        """Read HUD text samples from the local client page, if present."""
         idx_html = PG_ROOT / "Ult_Gaming" / "client" / "index.html"
         huds: List[str] = []
         if idx_html.exists():
@@ -954,6 +964,7 @@ class OffscreenGameSimulator:
         return huds or ["OUTPOST ZERO GOLD 200", "SYNTAX GOBLIN HP 100"]
 
     def _load_kid_game_stages(self) -> List[str]:
+        """Return the list of stage labels used for the kid-game HUD simulation."""
         playtest_py = PG_ROOT / "wyldgms" / "kid_game" / "tools" / "run_playtests.py"
         if playtest_py.exists():
             return [
@@ -973,6 +984,7 @@ class OffscreenGameSimulator:
         frames: int = 90,
         target_fps: float = 120.0,
     ) -> GameComparisonResult:
+        """Run baseline and governed benchmark passes for one game and return the comparison."""
         baseline = self._simulate_pass(
             game_id=game_id,
             mode="baseline_ungoverned",
@@ -1014,6 +1026,7 @@ class OffscreenGameSimulator:
         )
 
     def _hud_banner_for_frame(self, game_id: str, frame_idx: int) -> str:
+        """Choose the HUD banner text that the simulated game shows on a given frame."""
         if game_id == "baby_game":
             letter, word = self.baby_vocab[frame_idx % len(self.baby_vocab)]
             return f"KEY {letter} {word}"
@@ -1037,6 +1050,7 @@ class OffscreenGameSimulator:
         frames: int,
         target_fps: float,
     ) -> GameBenchmarkRunMetrics:
+        """Simulate one benchmark pass frame by frame and collect its pacing metrics."""
         rng = random.Random(f"146:{game_id}:{mode}")
         is_governed = mode == "howitzer_014_governed"
 
@@ -1298,6 +1312,7 @@ def run_full_harness_suite(
 
 
 def build_markdown_report(payload: Dict[str, Any]) -> str:
+    """Render the benchmark payload as a human-readable Markdown report."""
     agg = payload["aggregate_summary"]
     gov_tel = payload["governor_telemetry"]
     safety = payload["safety_guard"]
@@ -1395,6 +1410,7 @@ def build_markdown_report(payload: Dict[str, Any]) -> str:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Command-line entry point: parse arguments, run the requested harness mode, and return a process exit code."""
     parser = argparse.ArgumentParser(
         description="HOWITZER-017: Interactive AI Game Player, Offscreen OCR/HID & FPS Rating Harness"
     )

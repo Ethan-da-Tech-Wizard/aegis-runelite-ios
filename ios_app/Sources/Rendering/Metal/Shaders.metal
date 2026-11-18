@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: Shaders.metal
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Metal Shading Language (MSL) Vertex and Fragment Shaders for Overlays.
-//          Performs 2D pixel coordinate transformation to Normalized Device
-//          Coordinates (NDC: -1.0 to +1.0) and renders interpolated RGBA colors.
-// ==============================================================================
+// Program: aegis-runelite-ios - Shaders.metal
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Metal vertex and fragment shaders that map pixel coordinates to clip space and output vertex colors.
 
 // ==============================================================================
 // Overview: Shader Architecture:

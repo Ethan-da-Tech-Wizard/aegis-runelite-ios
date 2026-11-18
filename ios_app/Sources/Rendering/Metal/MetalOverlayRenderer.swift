@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: MetalOverlayRenderer.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Hardware-Accelerated Apple Metal 2D/3D Overlay Renderer.
-//          Renders high-performance, low-latency visual HUD indicators, ground tile
-//          quads, and contrast bounding boxes directly on the GPU at 60/120 FPS
-//          using custom Metal shading language (MSL) pipelines and alpha blending.
-// ==============================================================================
+// Program: aegis-runelite-ios - MetalOverlayRenderer.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Metal renderer that draws plugin overlay commands such as quads and boxes on the GPU.
 
 // ==============================================================================
 // Overview: GPU Graphics Pipelines:
@@ -53,6 +48,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
     private var pipelineState: MTLRenderPipelineState?
     private var vertexBuffer: MTLBuffer?
 
+    // Private so the shared singleton is the only instance.
     private override init() {
         super.init()
         setupMetal()
@@ -151,6 +147,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
         var vertices: [OverlayVertex] = []
         for command in commands {
             switch command {
+            // Polygon commands are drawn as filled triangles; stroke values are ignored here.
             case .polygon(let points, let fillColor, _, _):
                 // A quadrilateral tile is decomposed into 2 triangles: (0, 1, 2) and (0, 2, 3)
                 guard points.count >= 4 else { continue }
@@ -170,6 +167,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
                 vertices.append(OverlayVertex(position: p2, color: col))
                 vertices.append(OverlayVertex(position: p3, color: col))
 
+            // Bounding boxes are drawn as filled rectangles; corner radius is ignored here.
             case .boundingBox(let rect, let color, _):
                 // Rectangular bounding box decomposed into 2 triangles
                 let col = simdColor(from: color)

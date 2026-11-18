@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: RuneLiteApp.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Root SwiftUI View Interface for RuneLite Mobile iOS.
-//          Provides declarative user interface components that overlay
-//          on top of the low-level Metal hardware rendering pipeline.
-// ==============================================================================
+// Program: aegis-runelite-ios - RuneLiteApp.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Root SwiftUI view that shows a status screen layered over the Metal rendering pipeline.
 
 // ==============================================================================
 // Overview: SwiftUI Declarative UI:

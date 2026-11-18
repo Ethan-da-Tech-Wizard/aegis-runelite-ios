@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  Program: aegis-runelite-ios - ios_runelite_webclip.html
+  Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+  Last Modified: 2026-11-18
+  Purpose: Single-page mobile web client that renders the streamed RuneLite overlay on a canvas and sends touch input back to the bridge server.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -234,11 +240,13 @@
       { id: 'clues', name: 'Clue Scroll Solver', desc: 'Step-by-step puzzle overlay', active: false }
     ];
 
+    /** Open or close the plugin drawer panel and sync its CSS class. */
     function toggleDrawer() {
       drawerOpen = !drawerOpen;
       document.getElementById('pluginDrawer').classList.toggle('open', drawerOpen);
     }
 
+    /** Rebuild the plugin list HTML from the plugins array, one toggle switch per plugin. */
     function renderPluginDrawer() {
       const container = document.getElementById('pluginList');
       container.innerHTML = plugins.map(p => `
@@ -255,6 +263,7 @@
       `).join('');
     }
 
+    /** Flip the active flag of the plugin with the given id. */
     function togglePlugin(id) {
       const p = plugins.find(x => x.id === id);
       if (p) {
@@ -289,6 +298,7 @@
     let clickMarker = null;
     let liveOverlays = [];
 
+    /** Record a tap marker at (x, y) and forward the tap to the bridge server when served over HTTP. */
     function handleTap(x, y) {
       clickMarker = { x, y, radius: 4, alpha: 1.0 };
       if (window.location.protocol.startsWith('http')) {
@@ -312,16 +322,19 @@
       }, 600);
     }
 
+    /** Placeholder for quick-action buttons: currently only logs the action name to the console. */
     function sendQuickAction(action) {
       console.log('Dispatched quick action:', action);
     }
 
+    /** Placeholder for quick-key buttons: currently only logs the key name to the console. */
     function sendQuickKey(key) {
       console.log('Dispatched quick key:', key);
     }
 
     // Continuous 60 FPS Render Loop (Simulating OSRS Canvas + RuneLite Plugin Overlays)
     let tick = 0;
+    /** Draw one canvas frame: the simulated world scene, then the overlays, on every animation tick. */
     function renderFrame() {
       tick++;
 

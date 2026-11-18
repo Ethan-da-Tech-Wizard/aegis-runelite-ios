@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: Actor.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Dynamic Game Entity Protocol & Concrete Models (Player & NPC) for OSRS.
-//          Defines polymorphic protocols for combat entities, position tracking,
-//          health bar calculations, animation states, and entity interactions.
-// ==============================================================================
+// Program: aegis-runelite-ios - Actor.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Actor protocol and concrete player and NPC models with position, health and animation state.
 
 // ==============================================================================
 // Overview: Object-Oriented Polymorphism:

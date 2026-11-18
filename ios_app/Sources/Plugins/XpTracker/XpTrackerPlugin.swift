@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: XpTrackerPlugin.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Real-Time Experience & Skill Progression Tracking Plugin for iOS.
-//          Listens to StatChangedEvent from EventBus, computes XP/hour rates,
-//          and renders a top-right corner Heads-Up Display (HUD) overlay.
-// ==============================================================================
+// Program: aegis-runelite-ios - XpTrackerPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Plugin that tracks experience gains and draws an XP-per-hour HUD.
 
 // ==============================================================================
 // Overview: Telemetry Rate Calculations:
@@ -60,6 +56,7 @@ public final class XpTrackerPlugin: Plugin {
     private var sessions: [String: SkillTrackerSession] = [:]
     private let lock = NSLock()
 
+    /// Creates the plugin with its default settings.
     public init() {}
 
     /// Lifecycle hook: Subscribe to StatChangedEvent.

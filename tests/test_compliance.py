@@ -1,14 +1,7 @@
-# ==============================================================================
-# Program: tests/test_compliance.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Automated Jagex Compliance & Architecture Verification Test Suite.
-#          Ensures strict adherence to Jagex's Third-Party Client Rules:
-#          - 1:1 input ratio enforcement
-#          - Banning of prohibited automation (auto-prayer, auto-clickers, packet injection)
-#          - Zero-credential architecture (OAuth2 PKCE, no stored passwords)
-#          - Verification of all native iOS project structures, shaders, and tests.
-# ==============================================================================
+# Program: aegis-runelite-ios - test_compliance.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Compliance tests that verify the third-party client rules (1:1 input, no prohibited automation, zero-credential auth) and the native iOS project structure.
 
 """tests/test_compliance.py — Automated Jagex Compliance & Architecture Verification Test Suite.
 

@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: IdleNotifierPlugin.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Idle & Low-Resource Alert Plugin with iOS Haptic & Notification Engine.
-//          Monitors player character animation states to detect when AFK skilling
-//          (woodcutting, fishing, mining) completes, triggering physical Taptic
-//          vibrations and local user notifications.
-// ==============================================================================
+// Program: aegis-runelite-ios - IdleNotifierPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Plugin that detects idle player animation and alerts with haptics and local notifications.
 
 // ==============================================================================
 // Overview: State Monitoring:
@@ -53,6 +48,7 @@ public final class IdleNotifierPlugin: Plugin {
     private var idleTickCount: Int = 0
     private var lastAlertDate: Date = .distantPast
 
+    /// Creates the plugin with its default settings.
     public init() {}
 
     /// Lifecycle hook: Request notification permissions and subscribe to GameTickEvent.

@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: GroundItemsPlugin.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Ground Loot Highlighting and Economic Valuation Overlay Plugin.
-//          Renders color-coded text tags and contrast bounding boxes over dropped
-//          items on the 3D game canvas according to Grand Exchange market prices.
-// ==============================================================================
+// Program: aegis-runelite-ios - GroundItemsPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Plugin that draws value-colored labels and boxes over dropped items.
 
 // ==============================================================================
 // Overview: Economic Data Visualization:
@@ -45,6 +41,7 @@ public final class GroundItemsPlugin: Plugin {
     public var showDespawnTimer: Bool = true
     public var highlightValueThreshold: Int = 10_000
 
+    /// Creates the plugin with its default settings.
     public init() {}
 
     /// Lifecycle hook: Started up.

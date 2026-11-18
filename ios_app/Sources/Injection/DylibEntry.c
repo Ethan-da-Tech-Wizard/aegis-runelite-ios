@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: DylibEntry.c
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Mach-O Dynamic Library Constructor & Destructor Lifecycle Hooks.
-//          Executes automatically when the injected RuneLiteOverlay.dylib is
-//          mapped into the OSRS process address space by Apple's dynamic linker (dyld).
-// ==============================================================================
+// Program: aegis-runelite-ios - DylibEntry.c
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Dynamic library constructor and destructor hooks that start the overlay when the library is loaded.
 
 // ==============================================================================
 // Overview: Dynamic Linker Lifecycle:

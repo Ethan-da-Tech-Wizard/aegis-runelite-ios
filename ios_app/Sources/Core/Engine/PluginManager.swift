@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: PluginManager.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Central Plugin Registry and Lifecycle Controller for RuneLite Mobile iOS.
-//          Manages registration, persistent enabled/disabled states via UserDefaults,
-//          startup/shutdown lifecycle transitions, and collection of Metal overlay
-//          draw commands from active plugins.
-// ==============================================================================
+// Program: aegis-runelite-ios - PluginManager.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Plugin registry that tracks enabled state, runs startup and shutdown, and collects overlay draw commands.
 
 // ==============================================================================
 // Overview: Plugin Architecture:
@@ -37,6 +32,7 @@ public final class PluginManager: ObservableObject {
     private var pluginMap: [String: Plugin] = [:]
     private let userDefaults = UserDefaults.standard
 
+    // Private so the shared singleton is the only instance.
     private init() {}
 
     /// Register a new plugin into the engine and start it up if enabled.

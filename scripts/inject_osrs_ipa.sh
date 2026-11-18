@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Program: scripts/inject_osrs_ipa.sh
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Dynamic Library (dylib) Injection Pipeline for Official OSRS Client.
-#          Unpacks a decrypted Old School RuneScape IPA, stages RuneLiteOverlay.dylib
-#          into Frameworks/, patches the Mach-O binary load commands (LC_LOAD_DYLIB)
-#          via optool, and re-signs the package with ldid.
-# ==============================================================================
+# Program: aegis-runelite-ios - inject_osrs_ipa.sh
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Pipeline that unpacks a decrypted OSRS IPA, stages the RuneLite overlay dylib, patches the Mach-O load commands with optool, and re-signs the package with ldid.
 
 # ==============================================================================
 # Overview — Dynamic Linker & Mach-O Injection:

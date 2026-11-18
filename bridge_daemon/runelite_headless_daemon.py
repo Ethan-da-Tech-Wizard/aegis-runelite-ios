@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: bridge_daemon/runelite_headless_daemon.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Headless RuneLite Mobile Streaming Daemon.
-#          Simulates the 600ms OSRS engine game tick loop, manages active RuneLite
-#          plugins (Ground Items, Agility, Tile Indicators, Prayer), renders
-#          overlay bounding boxes and text, and dispatches mobile touch input.
-# ==============================================================================
+# Program: aegis-runelite-ios - runelite_headless_daemon.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Headless daemon that simulates the 600ms game tick loop, manages overlay plugins, renders overlay boxes and text, and handles mobile touch input.
 
 """bridge_daemon/runelite_headless_daemon.py — Headless RuneLite Mobile Streaming Daemon.
 

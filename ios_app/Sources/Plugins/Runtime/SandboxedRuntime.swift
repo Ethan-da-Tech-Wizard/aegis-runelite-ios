@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: SandboxedRuntime.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Sandboxed JavaScriptCore Runtime for Safe Community Plugin Execution.
-//          Enforces 100% compliance with Apple App Store Guideline 2.5.2 & W^X
-//          memory rules: zero-JIT interpreted bytecode, isolated heap, read-only
-//          game state bridges, and forbidden AST token inspection.
-// ==============================================================================
+// Program: aegis-runelite-ios - SandboxedRuntime.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Sandboxed JavaScriptCore runtime that runs community plugin scripts with restricted, read-only access.
 
 // ==============================================================================
 // Overview: Secure Sandboxing:
@@ -67,6 +62,7 @@ public final class SandboxedRuntime {
         "sendPacket", "injectTouch", "autoClick"
     ]
 
+    // Private so the shared singleton is the only instance; creates the VM and installs the sandbox bridges.
     private init() {
         self.vm = JSVirtualMachine()
         self.context = JSContext(virtualMachine: vm)

@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: SceneDelegate.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Window Scene Lifecycle Delegate for RuneLite Mobile iOS.
-//          Configures the primary UIWindow, instantiates the root
-//          OverlayViewController, attaches Metal rendering views, and activates
-//          the window on screen.
-// ==============================================================================
+// Program: aegis-runelite-ios - SceneDelegate.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Window scene delegate that creates the main window and installs OverlayViewController as its root.
 
 // ==============================================================================
 // Overview: iOS Scene Architecture:
@@ -25,6 +20,7 @@
 
 import UIKit
 
+/// Scene-level delegate that builds the window and attaches the root view controller.
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // Reference to the main window displayed on the physical device screen
     var window: UIWindow?

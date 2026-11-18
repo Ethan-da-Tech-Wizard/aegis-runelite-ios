@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: MetalHook.m
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Objective-C Runtime Method Swizzling & Metal Injection Bridge.
-//          Intercepts UIKit window presentation to inject a transparent
-//          Metal overlay layer directly over the official OSRS game canvas.
-// ==============================================================================
+// Program: aegis-runelite-ios - MetalHook.m
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Objective-C bridge that finds the active window and prepares a transparent Metal overlay over the host game.
 
 // ==============================================================================
 // Overview: Dynamic Runtime Interception:

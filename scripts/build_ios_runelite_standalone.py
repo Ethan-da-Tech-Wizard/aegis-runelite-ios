@@ -1,13 +1,7 @@
-# ==============================================================================
-# Program: scripts/build_ios_runelite_standalone.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Standalone iOS RuneLite File & WebClip Configuration Profile Builder.
-#          Assembles the single-file offline HTML5/WASM RuneLite client, validates
-#          authentic OSRS gesture mechanics (no arcade joysticks), and compiles
-#          an Apple MDM .mobileconfig WebClip profile for 1-tap iPhone Home Screen
-#          installation with full-screen presentation.
-# ==============================================================================
+# Program: aegis-runelite-ios - build_ios_runelite_standalone.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Builder that assembles the single-file offline HTML5 RuneLite client, validates its touch mechanics, and writes an Apple WebClip .mobileconfig profile for Home Screen install.
 
 """scripts/build_ios_runelite_standalone.py — Standalone iOS RuneLite File & WebClip Builder.
 

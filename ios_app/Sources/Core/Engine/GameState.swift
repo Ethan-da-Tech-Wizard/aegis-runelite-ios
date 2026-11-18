@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: GameState.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Central Game Engine State Model and Tick Event Driver for OSRS.
-//          Maintains the 104x104 scene tile base, local player status, camera
-//          parameters, ground items, skill experience tables, and 600ms tick dispatch.
-// ==============================================================================
+// Program: aegis-runelite-ios - GameState.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Central observable game state holding scene, player, camera, items and skills, plus the tick driver.
 
 // ==============================================================================
 // Overview: Game Engine Architecture:
@@ -84,6 +80,7 @@ public final class GameState: ObservableObject {
     // Ground elevation 2D array [104][104]
     public var tileHeights: [[Int]] = Array(repeating: Array(repeating: 0, count: 104), count: 104)
 
+    // Private so the shared singleton is the only instance.
     private init() {}
 
     /// Get tile height in fine units at a specific scene coordinate.

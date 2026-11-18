@@ -1,14 +1,7 @@
-// ==============================================================================
-// Program: JagexComplianceEngine.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Jagex Third-Party Client Compliance & Safety Enforcement Engine.
-//          Enforces Jagex's official published guidelines:
-//          - 1:1 hardware digitizer touch validation
-//          - Blocking prohibited automation (auto-prayer, auto-clickers, packet injection)
-//          - Banning world de-rendering and macro sequences
-//          - Audit logging and fail-closed security assertions.
-// ==============================================================================
+// Program: aegis-runelite-ios - JagexComplianceEngine.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Compliance engine that enforces input and automation rules, blocking prohibited behavior and logging audits.
 
 // ==============================================================================
 // Overview: Anti-Cheat Compliance:
@@ -39,7 +32,9 @@ import UIKit
 
 /// Severity rating of a detected compliance violation.
 public enum ComplianceViolationSeverity: String, Sendable {
+    /// Lower-severity violation level.
     case warning
+    /// Highest-severity violation level, used for rejected synthetic touches and prohibited plugin capabilities.
     case criticalSecurityViolation
 }
 
@@ -52,6 +47,7 @@ public final class JagexComplianceEngine {
     private let lock = NSLock()
     private var violations: [String] = []
 
+    // Private so the shared singleton is the only instance.
     private init() {}
 
     /// Validates whether a touch event is authentic hardware digitizer interaction.

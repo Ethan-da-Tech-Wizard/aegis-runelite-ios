@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: KeychainHelper.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Secure Enclave & Keychain Wrapper for Sensitive OAuth2 Tokens.
-//          Provides hardware-backed cryptographic storage for Jagex Account
-//          refresh tokens, enforcing device-only access that prevents extraction
-//          across iCloud backups or unauthenticated processes.
-// ==============================================================================
+// Program: aegis-runelite-ios - KeychainHelper.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Keychain wrapper that stores, reads and deletes sensitive OAuth tokens with device-only access.
 
 // ==============================================================================
 // Overview: Secure Key Management:

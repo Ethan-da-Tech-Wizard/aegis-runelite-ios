@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: Perspective.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: 3D-to-2D Perspective Projection Engine for RuneLite Mobile iOS.
-//          Converts 3D OSRS scene points into 2D Apple Metal screen coordinates
-//          using precomputed fixed-point trigonometric sine/cosine lookup tables,
-//          camera pitch/yaw Euler rotation matrices, and perspective division.
-// ==============================================================================
+// Program: aegis-runelite-ios - Perspective.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Perspective projection engine that converts 3D scene points to 2D screen coordinates using lookup tables.
 
 // ==============================================================================
 // Overview: 3D Graphics Mathematics:

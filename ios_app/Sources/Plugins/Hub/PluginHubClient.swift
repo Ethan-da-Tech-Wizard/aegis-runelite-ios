@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: PluginHubClient.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Official RuneLite Plugin Hub Client & Secure Package Manager for iOS.
-//          Queries plugin repository manifests, validates SHA-256 cryptographic
-//          hashes, manages local installation state via UserDefaults, and stages
-//          vetted community plugins (Loot Tracker, Quest Helper) into the sandbox.
-// ==============================================================================
+// Program: aegis-runelite-ios - PluginHubClient.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Plugin hub client that fetches manifests, verifies SHA-256 hashes and tracks installed community plugins.
 
 // ==============================================================================
 // Overview: Package Management Architecture:
@@ -94,6 +89,7 @@ public final class PluginHubClient: ObservableObject {
     private let hubManifestUrl = "https://raw.githubusercontent.com/runelite/plugin-hub/master/plugins.json"
     private let installedStorageKey = "runelite.pluginhub.installed"
 
+    // Private so the shared singleton is the only instance; loads saved state and the default catalog.
     private init() {
         loadInstalledState()
         populateDefaultVerifiedCatalog()

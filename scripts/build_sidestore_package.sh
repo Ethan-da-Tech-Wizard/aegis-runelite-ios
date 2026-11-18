@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Program: scripts/build_sidestore_package.sh
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Packages RuneLiteMobile into an optimized .ipa for SideStore sideloading.
-#          Enables 100% free, zero-Apple-Developer-Account installation with
-#          automated on-device 7-day certificate renewal over local WireGuard VPN.
-# ==============================================================================
+# Program: aegis-runelite-ios - build_sidestore_package.sh
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Packaging script that builds RuneLiteMobile into an optimized .ipa for sideloading with SideStore without a paid developer account.
 
 # ==============================================================================
 # Overview — SideStore Architecture:

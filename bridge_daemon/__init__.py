@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: bridge_daemon/__init__.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Headless Streaming Bridge Daemon Package Initializer.
-#          Defines the public interface for the zero-credential local streaming
-#          bridge that connects desktop RuneLite sessions to mobile iOS/iPadOS
-#          clients over low-latency event stream sockets.
-# ==============================================================================
+# Program: aegis-runelite-ios - __init__.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Package initializer describing the local streaming bridge that connects a desktop RuneLite session to mobile iOS/iPadOS clients.
 
 """Aegis RuneLite iOS - Headless Streaming Bridge Daemon.
 

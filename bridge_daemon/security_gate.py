@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: bridge_daemon/security_gate.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Zero-Credential Security Boundary and Data Scrubbing Engine.
-#          Inspects, audits, and filters all data transmitted across the network
-#          bridge to guarantee that zero user credentials, passwords, session
-#          tokens, bank PINs, or high-entropy secrets ever reach the mobile client.
-# ==============================================================================
+# Program: aegis-runelite-ios - security_gate.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Security boundary that inspects and scrubs outbound data so credentials, tokens, PINs, and high-entropy secrets never reach the mobile client.
 
 """bridge_daemon/security_gate.py — Zero-Credential Security Boundary.
 

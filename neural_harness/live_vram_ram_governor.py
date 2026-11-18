@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
-# ==============================================================================
-# Program: neural_harness/live_vram_ram_governor.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: HOWITZER Live VRAM & RAM Working-Set Governor.
-#          Non-destructively compresses active RAM and VRAM footprints of running
-#          AI models, background daemons, and workspace applications down to their
-#          strict active working set while keeping 100% of processes alive and
-#          responsive during heavy 3D gaming or rendering workloads.
-# ==============================================================================
+# Program: aegis-runelite-ios - live_vram_ram_governor.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Working-set governor that audits and trims RAM and VRAM of running AI models and background processes, and plans CPU affinity, while keeping every process alive during heavy game workloads.
 
 """
 HOWITZER Live VRAM & RAM Working-Set Governor (`live_vram_ram_governor.py`).
@@ -62,6 +56,7 @@ from dataclasses import asdict, field
 if sys.version_info < (3, 10):
     _orig_dataclass = dataclasses.dataclass
     def dataclass(*args, **kwargs):
+        """Compatibility wrapper that drops slots/kw_only arguments unsupported before Python 3.10."""
         kwargs.pop("slots", None)
         kwargs.pop("kw_only", None)
         return _orig_dataclass(*args, **kwargs)
@@ -131,6 +126,7 @@ GAME_PROCESS_HINTS = frozenset({
 
 
 class _Iovec(ctypes.Structure):
+    """ctypes mirror of the C iovec struct used for cross-process memory calls."""
     _fields_ = [
         ("iov_base", ctypes.c_void_p),
         ("iov_len", ctypes.c_size_t),
@@ -139,6 +135,7 @@ class _Iovec(ctypes.Structure):
 
 @dataclass(slots=True)
 class SystemMemoryTelemetry:
+    """Snapshot of system-wide memory counters read from the operating system."""
     mem_total_kb: int
     mem_free_kb: int
     mem_available_kb: int
@@ -156,10 +153,12 @@ class SystemMemoryTelemetry:
 
     @property
     def used_kb(self) -> int:
+        """Memory in use in KB: total minus available."""
         return max(0, self.mem_total_kb - self.mem_available_kb)
 
     @property
     def pressure_ratio(self) -> float:
+        """Fraction of total memory in use, rounded to four decimals (0.0 if total is unknown)."""
         if self.mem_total_kb <= 0:
             return 0.0
         return round(self.used_kb / float(self.mem_total_kb), 4)
@@ -167,6 +166,7 @@ class SystemMemoryTelemetry:
 
 @dataclass(slots=True)
 class ProcessWorkingSet:
+    """Memory working-set measurements for one process, including its hot and cold pages."""
     pid: int
     name: str
     cmdline: str
@@ -185,10 +185,12 @@ class ProcessWorkingSet:
 
     @property
     def active_working_set_kb(self) -> int:
+        """Memory actually in use in KB: the smaller of resident and recently referenced size."""
         return min(self.rss_kb, self.referenced_kb)
 
     @property
     def cold_ratio(self) -> float:
+        """Fraction of resident memory that is cold and reclaimable (0.0 if nothing is resident)."""
         if self.rss_kb <= 0:
             return 0.0
         return round(self.cold_reclaimable_kb / float(self.rss_kb), 4)
@@ -196,6 +198,7 @@ class ProcessWorkingSet:
 
 @dataclass(slots=True)
 class GpuProcessInfo:
+    """One process's GPU memory usage as reported by the GPU tool."""
     pid: int
     process_name: str
     used_vram_mb: int
@@ -204,6 +207,7 @@ class GpuProcessInfo:
 
 @dataclass(slots=True)
 class GpuTelemetry:
+    """Snapshot of GPU availability, VRAM totals, utilization, and per-process usage."""
     available: bool
     gpu_name: str
     total_vram_mb: int
@@ -215,6 +219,7 @@ class GpuTelemetry:
 
 @dataclass(slots=True)
 class CpuTopology:
+    """CPU layout: logical CPU count and which CPUs are performance versus efficiency cores."""
     total_logical_cpus: int
     p_cores: List[int]
     e_cores: List[int]
@@ -224,6 +229,7 @@ class CpuTopology:
 
 @dataclass(slots=True)
 class CpuAffinityAction:
+    """Planned CPU affinity and scheduling change for one process."""
     pid: int
     name: str
     role: str
@@ -236,6 +242,7 @@ class CpuAffinityAction:
 
 @dataclass(slots=True)
 class MemoryTrimAction:
+    """Planned (or applied) trim of cold memory pages for one process."""
     pid: int
     name: str
     role: str
@@ -253,6 +260,7 @@ class MemoryTrimAction:
 
 @dataclass(slots=True)
 class VramOptimizationAction:
+    """Planned VRAM reduction for one GPU process."""
     pid: int
     process_name: str
     current_vram_mb: int
@@ -266,6 +274,7 @@ class VramOptimizationAction:
 
 @dataclass(slots=True)
 class SelfAllocatorTrimResult:
+    """Result of trimming this governor process's own allocator memory."""
     gc_collected_objects: int
     malloc_trim_returned: int
     platform_allocator: str
@@ -273,6 +282,7 @@ class SelfAllocatorTrimResult:
 
 @dataclass(slots=True)
 class GovernorActionPlan:
+    """Complete plan of CPU, memory, and VRAM actions produced by one governor run."""
     timestamp: float
     hostname: str
     os_platform: str
@@ -297,6 +307,7 @@ class GovernorActionPlan:
     kernel_capabilities: Dict[str, bool]
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
@@ -632,6 +643,7 @@ def parse_nvidia_smi_outputs(
         )
 
     def _safe_int(val: str) -> int:
+        """Extract the first integer from a string, or 0 if none is found."""
         m = re.search(r"\d+", val)
         return int(m.group(0)) if m else 0
 
@@ -689,6 +701,7 @@ def probe_gpu_vram(
 ) -> GpuTelemetry:
     """Probe live NVIDIA GPU VRAM and compute processes via `nvidia-smi` with clean fallback."""
     def _default_runner(cmd: Sequence[str]) -> Tuple[int, str]:
+        """Run a command with a short timeout and return its exit code and output."""
         try:
             proc = subprocess.run(
                 list(cmd),
@@ -1151,6 +1164,7 @@ def format_human_summary(plan: GovernorActionPlan) -> str:
 
 @dataclass(slots=True)
 class KvCacheElasticScalingReport:
+    """Estimated VRAM saved by scaling the model server's KV cache."""
     port: int
     baseline_vram_mb: int
     optimized_vram_mb: int
@@ -1162,11 +1176,13 @@ class KvCacheElasticScalingReport:
     live_endpoint_preserved: bool
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
 @dataclass(slots=True)
 class MacVerboseTelemetryBridgeProfile:
+    """Resource profile for a Mac node that relays telemetry to the model server."""
     node_name: str
     magi_seat: int
     total_ram_mb: int
@@ -1180,11 +1196,13 @@ class MacVerboseTelemetryBridgeProfile:
     verbose_packet_bytes: int
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
 @dataclass(slots=True)
 class AdaptiveFramePacingTransition:
+    """Describes the mode switch and core isolation applied when a game starts or stops."""
     active_mode: str
     game_detected: bool
     active_game_pids: List[int]
@@ -1196,17 +1214,20 @@ class AdaptiveFramePacingTransition:
     madvise_syscall_used: str
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
 @dataclass(slots=True)
 class HighUsageCostReductionSummary:
+    """Combined result of KV-cache scaling, Mac bridge profiling, and frame pacing."""
     kv_cache_scaling: KvCacheElasticScalingReport
     mac_bridge_profile: MacVerboseTelemetryBridgeProfile
     frame_pacing: AdaptiveFramePacingTransition
     sandbox_validated: bool
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return this record as a plain dictionary for JSON serialization."""
         return asdict(self)
 
 
@@ -1227,6 +1248,7 @@ class HighUsageCostReducer:
         baseline_vram_mb: int = 5792,
         target_vram_mb: int = 1450,
     ) -> None:
+        """Store the model server port and the baseline and target VRAM figures."""
         self.llama_port = int(llama_port)
         self.baseline_vram_mb = int(baseline_vram_mb)
         self.target_vram_mb = int(target_vram_mb)
@@ -1406,6 +1428,7 @@ class HighUsageCostReducer:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Command-line entry point: parse arguments, run the requested governor mode, and return an exit code."""
     parser = argparse.ArgumentParser(
         description="HOWITZER Live VRAM & RAM Working-Set Governor"
     )

@@ -1,13 +1,7 @@
-# ==============================================================================
-# Program: tests/test_ai_game_player_fps_harness.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Unit Test Suite for AI Game Player, Offscreen OCR/HID Controller &
-#          Live FPS/Frame-Time Benchmark Rating Harness.
-#          Tests hermetic offscreen SDL dummy video driver operation, HID safety
-#          guards, optical character recognition (OCR) token verification,
-#          multi-engine library discovery, and VRAM budget headroom calculations.
-# ==============================================================================
+# Program: aegis-runelite-ios - test_ai_game_player_fps_harness.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Unit tests for the game-player harness covering offscreen SDL rendering, HID safety, OCR token checks, game library discovery, and VRAM headroom math.
 
 """tests/test_ai_game_player_fps_harness.py — Unit test suite for Neural Gamer FPS Harness.
 

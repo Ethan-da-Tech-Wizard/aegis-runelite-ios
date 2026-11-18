@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: EventBus.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Decoupled Publish-Subscribe Event Dispatch Bus for RuneLite Mobile iOS.
-//          Enables game loop, network daemon, and touch pipeline to broadcast
-//          typed events (ticks, stat changes, item spawns, menu entries) to
-//          active plugins without tight coupling.
-// ==============================================================================
+// Program: aegis-runelite-ios - EventBus.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Publish-subscribe event bus and typed event definitions used to decouple the engine from plugins.
 
 // ==============================================================================
 // Overview: Publish-Subscribe (Pub/Sub) Pattern:
@@ -33,6 +28,7 @@ import Foundation
 /// Fired every 600ms when the Old School RuneScape engine tick increments.
 public struct GameTickEvent: Sendable {
     public let tickCount: Int
+    /// Creates the event with the current game tick number.
     public init(tickCount: Int) {
         self.tickCount = tickCount
     }
@@ -41,6 +37,7 @@ public struct GameTickEvent: Sendable {
 /// Fired every screen redraw frame with the delta elapsed time in seconds.
 public struct ClientTickEvent: Sendable {
     public let deltaTime: TimeInterval
+    /// Creates the event with the seconds elapsed since the previous frame.
     public init(deltaTime: TimeInterval) {
         self.deltaTime = deltaTime
     }
@@ -53,6 +50,7 @@ public struct StatChangedEvent: Sendable {
     public let experience: Int
     public let xpGained: Int
 
+    /// Creates the event from the skill name, its new level and total experience, and the experience just gained.
     public init(skillName: String, currentLevel: Int, experience: Int, xpGained: Int) {
         self.skillName = skillName
         self.currentLevel = currentLevel
@@ -64,6 +62,7 @@ public struct StatChangedEvent: Sendable {
 /// Fired when an item appears on the ground.
 public struct ItemSpawnedEvent: Sendable {
     public let item: Item
+    /// Creates the event for the given item.
     public init(item: Item) {
         self.item = item
     }
@@ -72,6 +71,7 @@ public struct ItemSpawnedEvent: Sendable {
 /// Fired when an item is picked up or despawns from the ground.
 public struct ItemDespawnedEvent: Sendable {
     public let item: Item
+    /// Creates the event for the given item.
     public init(item: Item) {
         self.item = item
     }
@@ -85,6 +85,7 @@ public struct MenuEntryAddedEvent: Sendable {
     public let opcode: Int
     public var isConsumed: Bool
 
+    /// Creates the event describing one menu entry; plugins may mark it consumed.
     public init(option: String, target: String, identifier: Int, opcode: Int, isConsumed: Bool = false) {
         self.option = option
         self.target = target
@@ -100,6 +101,7 @@ public struct PlayerAnimationChangedEvent: Sendable {
     public let oldAnimation: Int
     public let newAnimation: Int
 
+    /// Creates the event with the player and its previous and new animation ids.
     public init(player: PlayerActor, oldAnimation: Int, newAnimation: Int) {
         self.player = player
         self.oldAnimation = oldAnimation
@@ -117,6 +119,7 @@ public final class EventBus {
     private let lock = NSLock()
     private var subscribers: [ObjectIdentifier: [(Any) -> Void]] = [:]
 
+    // Private so the shared singleton is the only instance.
     private init() {}
 
     /// Subscribe an observer to a specific event type.

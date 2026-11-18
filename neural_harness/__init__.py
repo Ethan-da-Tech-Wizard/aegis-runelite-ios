@@ -1,11 +1,7 @@
-# ==============================================================================
-# Program: neural_harness/__init__.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Public interface package initializer for the Neural Game Player
-#          and Latency Benchmark Suite. Exports core simulator classes, safety
-#          guards, metrics collectors, and OCR evaluation tools.
-# ==============================================================================
+# Program: aegis-runelite-ios - __init__.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Package initializer that re-exports the neural game-player harness, HID safety guard, and VRAM/RAM governor interfaces.
 
 """Aegis RuneLite iOS - Neural Gamer FPS & Latency Benchmark Harness.
 

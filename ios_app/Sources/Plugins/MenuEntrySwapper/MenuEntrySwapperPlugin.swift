@@ -1,12 +1,7 @@
-// ==============================================================================
-// Program: MenuEntrySwapperPlugin.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Jagex-Compliant 1:1 Mobile Menu Entry Swapper Plugin for iOS.
-//          Reorders context menu options (e.g. promoting "Bank" over "Talk-to")
-//          so that a single physical tap triggers the most common interaction
-//          while strictly preserving Jagex's 1:1 input ratio rules.
-// ==============================================================================
+// Program: aegis-runelite-ios - MenuEntrySwapperPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Plugin that reorders context menu entries so the preferred action comes first while keeping one input per action.
 
 // ==============================================================================
 // Overview: Input Prioritization:
@@ -48,6 +43,7 @@ public final class MenuEntrySwapperPlugin: Plugin {
     public var swapTalkTo: Bool = true
     public var shiftClickDrop: Bool = true
 
+    /// Creates the plugin with its default settings.
     public init() {}
 
     /// Lifecycle hook: Subscribe to MenuEntryAddedEvent.

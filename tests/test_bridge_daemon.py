@@ -1,12 +1,7 @@
-# ==============================================================================
-# Program: tests/test_bridge_daemon.py
-# Programmer: Ethan-da-Tech-Wizard
-# Last Modified: November 18, 2026
-# Purpose: Unit Test Suite for Aegis RuneLite iOS Bridge Daemon.
-#          Validates the headless simulation tick loop, overlay batch production,
-#          touch input handling, plugin toggle state transitions, and the
-#          fail-closed zero-credential security boundary.
-# ==============================================================================
+# Program: aegis-runelite-ios - test_bridge_daemon.py
+# Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+# Last Modified: 2026-11-18
+# Purpose: Unit tests for the bridge daemon covering the tick loop, overlay batches, touch handling, plugin toggles, and the fail-closed security gate.
 
 """tests/test_bridge_daemon.py — Test suite for Aegis RuneLite iOS Bridge Daemon.
 

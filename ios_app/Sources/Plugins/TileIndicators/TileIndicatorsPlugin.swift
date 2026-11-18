@@ -1,11 +1,7 @@
-// ==============================================================================
-// Program: TileIndicatorsPlugin.swift
-// Programmer: Ethan-da-Tech-Wizard
-// Last Modified: November 18, 2026
-// Purpose: Ground Tile Highlighting Overlay Plugin for RuneLite Mobile iOS.
-//          Renders visual bounding quadrilaterals onto the 3D game surface to
-//          indicate the player's destination tile, hover tile, and current position.
-// ==============================================================================
+// Program: aegis-runelite-ios - TileIndicatorsPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard (written with Claude, an AI assistant)
+// Last Modified: 2026-11-18
+// Purpose: Plugin that draws highlights for the destination, hover and current player tiles.
 
 // ==============================================================================
 // Overview: 3D Spatial Indicators:
@@ -52,6 +48,7 @@ public final class TileIndicatorsPlugin: Plugin {
     public var currentTileColor: CGColor = UIColor.systemCyan.withAlphaComponent(0.4).cgColor
     public var hoverColor: CGColor = UIColor.systemYellow.withAlphaComponent(0.4).cgColor
 
+    /// Creates the plugin with its default settings.
     public init() {}
 
     /// Lifecycle hook: Called when the plugin is activated.
