@@ -1,4 +1,28 @@
 // swift-tools-version: 5.9
+// ==============================================================================
+// Program: Package.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Swift Package Manager (SPM) Manifest for RuneLiteMobile.
+//          Configures the build targets, platforms (iOS 16+), library products
+//          (RuneLiteCore), and executable targets (RuneLiteMobile).
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Swift Package Manager:
+// ==============================================================================
+// The Swift Package Manager (SPM) is Apple's official tool for managing the
+// distribution of Swift code. It is integrated directly with the Swift build
+// system to automate downloading, compiling, and linking dependencies.
+//
+// Manifest Structure:
+// - `platforms`: Specifies minimum deployment target (.iOS(.v16)).
+// - `products`: Defines the vendor outputs (RuneLiteCore library and executable).
+// - `targets`: Defines modules composed of source files with exclusions
+//   for platform-specific entry points (UIKit AppDelegate/SceneDelegate).
+// ==============================================================================
+
 import PackageDescription
 
 let package = Package(
@@ -22,7 +46,12 @@ let package = Package(
             name: "RuneLiteCore",
             dependencies: [],
             path: "Sources",
-            exclude: ["App/AppDelegate.swift", "App/SceneDelegate.swift", "Injection/DylibEntry.c", "Injection/MetalHook.m"]
+            exclude: [
+                "App/AppDelegate.swift",
+                "App/SceneDelegate.swift",
+                "Injection/DylibEntry.c",
+                "Injection/MetalHook.m"
+            ]
         ),
         .executableTarget(
             name: "RuneLiteMobile",

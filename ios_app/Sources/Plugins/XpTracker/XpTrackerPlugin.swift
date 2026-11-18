@@ -1,16 +1,37 @@
+// ==============================================================================
+// Program: XpTrackerPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Real-Time Experience & Skill Progression Tracking Plugin for iOS.
+//          Listens to StatChangedEvent from EventBus, computes XP/hour rates,
+//          and renders a top-right corner Heads-Up Display (HUD) overlay.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Telemetry Rate Calculations:
+// ==============================================================================
+// In telemetry tracking systems, calculating "rates of change over time"
+// (e.g. Speed = Distance / Time, XP/hour = XP_gained / Hours_elapsed) is a
+// foundational computational task.
 //
-//  XpTrackerPlugin.swift
-//  RuneLiteMobile
+// Calculation Breakdown:
+// - `xpGained = currentXp - startXp`
+// - `elapsedSeconds = now - startTime`
+// - `hours = elapsedSeconds / 3600.0`
+// - `xpPerHour = xpGained / hours`
 //
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Thread-Safety & Performance:
+// Event subscriptions trigger asynchronously when stat packets arrive.
+// We guard access to the `sessions` dictionary with `NSLock` to prevent
+// race conditions between the network/engine thread and the Metal render thread.
+// ==============================================================================
 
 import Foundation
 import CoreGraphics
 import UIKit
 
-/// Individual skill tracking session
+/// Individual skill tracking session recording baseline and progression metrics.
 public struct SkillTrackerSession: Sendable {
     public let skillName: String
     public let startXp: Int
@@ -18,17 +39,19 @@ public struct SkillTrackerSession: Sendable {
     public let startTime: Date
     public var lastUpdated: Date
 
+    /// Total experience gained during this session.
     public var xpGained: Int {
         return max(0, currentXp - startXp)
     }
 
+    /// Projected experience per hour based on elapsed session duration.
     public var xpPerHour: Int {
         let elapsed = max(1.0, lastUpdated.timeIntervalSince(startTime))
         return Int(Double(xpGained) / (elapsed / 3600.0))
     }
 }
 
-/// Real-time XP tracking plugin for iOS
+/// Real-time XP tracking plugin for iOS.
 public final class XpTrackerPlugin: Plugin {
     public let id: String = "xp_tracker"
     public let name: String = "XP Tracker"
@@ -40,6 +63,7 @@ public final class XpTrackerPlugin: Plugin {
 
     public init() {}
 
+    /// Lifecycle hook: Subscribe to StatChangedEvent.
     public func startUp() {
         EventBus.shared.subscribe(self, eventType: StatChangedEvent.self) { [weak self] event in
             self?.handleStatChanged(event)
@@ -47,11 +71,13 @@ public final class XpTrackerPlugin: Plugin {
         print("✅ [XpTrackerPlugin] Started up.")
     }
 
+    /// Lifecycle hook: Unsubscribe from EventBus.
     public func shutDown() {
         EventBus.shared.unsubscribe(self)
         print("🛑 [XpTrackerPlugin] Shut down.")
     }
 
+    /// Event handler updating or creating skill sessions upon XP changes.
     private func handleStatChanged(_ event: StatChangedEvent) {
         lock.lock()
         defer { lock.unlock() }
@@ -72,16 +98,21 @@ public final class XpTrackerPlugin: Plugin {
         }
     }
 
+    /// Render HUD overlay in top-right screen corner.
+    ///
+    /// - Parameter context: MetalRenderContext.
+    /// - Returns: Draw commands for HUD boxes and XP strings.
     public func renderOverlay(context: MetalRenderContext) -> [OverlayDrawCommand] {
         var commands: [OverlayDrawCommand] = []
 
         lock.lock()
+        // Display the top 3 actively trained skills with non-zero XP gains
         let activeSessions = Array(sessions.values.filter { $0.xpGained > 0 }.prefix(3))
         lock.unlock()
 
         guard !activeSessions.isEmpty else { return commands }
 
-        // Render compact HUD bar in top-right corner
+        // Position HUD panel in the top-right corner
         var currentY: CGFloat = 40.0
         let panelWidth: CGFloat = 160.0
         let panelX: CGFloat = context.viewportSize.width - panelWidth - 16.0
@@ -105,6 +136,7 @@ public final class XpTrackerPlugin: Plugin {
         return commands
     }
 
+    /// Format experience numbers with K (thousands) or M (millions) suffixes.
     private func formatXp(_ xp: Int) -> String {
         if xp >= 1_000_000 {
             return String(format: "%.1fM", Double(xp) / 1_000_000.0)
@@ -115,7 +147,7 @@ public final class XpTrackerPlugin: Plugin {
         }
     }
 
-    /// Reset all active tracking sessions
+    /// Reset all active tracking sessions.
     public func resetAll() {
         lock.lock()
         sessions.removeAll()

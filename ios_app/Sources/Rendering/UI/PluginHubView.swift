@@ -1,15 +1,36 @@
+// ==============================================================================
+// Program: PluginHubView.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: In-App RuneLite Plugin Hub Browser & Package Manager for iOS.
+//          Allows players to search, filter by category tags, install, toggle,
+//          and remove verified community plugins (Loot Tracker, Quest Helper).
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Filtered List Architectures:
+// ==============================================================================
+// In user interface development, providing fluid search and category filtering
+// over structured data collections is a standard programming requirement.
 //
-//  PluginHubView.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Key Concepts:
+// 1. Dynamic Filtering Computations (`filteredPlugins`):
+//    A computed property applies two sequential predicate filters:
+//    - Category Filter: Checks if `selectedFilter == "All"` or `plugin.tags.contains(selectedFilter)`.
+//    - Substring Text Search: Matches `searchText` against plugin `displayName`,
+//      `summary`, and `author` using case-insensitive localization matching.
+// 2. State-Driven UI Controls:
+//    - Category horizontal scroll pill buttons update `selectedFilter`.
+//    - `Toggle` buttons trigger `hubClient.togglePlugin`.
+//    - "Install" buttons trigger `hubClient.installPlugin(manifest:)`.
+//    - Trash icons trigger `hubClient.uninstallPlugin(id:)`.
+// ==============================================================================
 
 import SwiftUI
 
-/// Authentic in-app RuneLite Plugin Hub browser for iOS
-/// Allows players to search, install, toggle, and manage official community plugins
+/// Authentic in-app RuneLite Plugin Hub browser for iOS.
+/// Allows players to search, install, toggle, and manage official community plugins.
 public struct PluginHubView: View {
     @ObservedObject var hubClient = PluginHubClient.shared
     @State private var searchText: String = ""
@@ -20,6 +41,7 @@ public struct PluginHubView: View {
 
     public init() {}
 
+    /// Computed property returning filtered plugins matching both category and search query.
     public var filteredPlugins: [HubPluginManifest] {
         hubClient.availablePlugins.filter { plugin in
             let matchesCategory = selectedFilter == "All" || plugin.tags.contains(selectedFilter)
@@ -34,7 +56,7 @@ public struct PluginHubView: View {
     public var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Category Filter Pills
+                // Category Filter Pills (Horizontal Scroll Bar)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { category in
@@ -56,7 +78,7 @@ public struct PluginHubView: View {
 
                 Divider()
 
-                // Plugin List
+                // Filtered Plugin List
                 List {
                     Section(header: Text("Official RuneLite Plugin Hub (\(filteredPlugins.count) Available)")) {
                         ForEach(filteredPlugins) { plugin in
@@ -73,12 +95,14 @@ public struct PluginHubView: View {
 
                                     if plugin.isInstalled {
                                         HStack(spacing: 8) {
+                                            // Toggle plugin enabled / disabled
                                             Toggle("", isOn: Binding(
                                                 get: { plugin.isEnabled },
                                                 set: { hubClient.togglePlugin(id: plugin.id, isEnabled: $0) }
                                             ))
                                             .labelsHidden()
 
+                                            // Uninstall plugin button
                                             Button(action: {
                                                 hubClient.uninstallPlugin(id: plugin.id)
                                             }) {
@@ -88,6 +112,7 @@ public struct PluginHubView: View {
                                             .buttonStyle(.borderless)
                                         }
                                     } else {
+                                        // Install plugin button
                                         Button(action: {
                                             hubClient.installPlugin(manifest: plugin) { _ in }
                                         }) {
@@ -108,7 +133,7 @@ public struct PluginHubView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.primary)
 
-                                // Tags
+                                // Semantic Category Tags
                                 HStack {
                                     ForEach(plugin.tags, id: \.self) { tag in
                                         Text("#\(tag)")

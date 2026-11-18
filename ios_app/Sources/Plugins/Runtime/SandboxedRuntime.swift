@@ -1,15 +1,41 @@
+// ==============================================================================
+// Program: SandboxedRuntime.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Sandboxed JavaScriptCore Runtime for Safe Community Plugin Execution.
+//          Enforces 100% compliance with Apple App Store Guideline 2.5.2 & W^X
+//          memory rules: zero-JIT interpreted bytecode, isolated heap, read-only
+//          game state bridges, and forbidden AST token inspection.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Secure Sandboxing:
+// ==============================================================================
+// In software systems security, executing third-party or untrusted community code
+// requires an isolated "sandbox" environment to prevent malicious behavior.
 //
-//  SandboxedRuntime.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Sandboxing Safeguards Implemented Here:
+// 1. JavaScriptCore Virtual Machine: Runs scripts inside an isolated `JSVirtualMachine`
+//    heap without JIT compilation, adhering to iOS W^X (Write XOR Execute) memory policies.
+// 2. Removal of Network APIs:
+//    Community plugins have NO legitimate need to access external networks.
+//    We explicitly delete dangerous networking globals:
+//    - `delete this.fetch;`
+//    - `delete this.XMLHttpRequest;`
+//    - `delete this.WebSocket;`
+// 3. Static AST Token Inspection (`forbiddenAstTokens`):
+//    Before any script is evaluated, we scan the source code for banned automation
+//    keywords like `autoPrayer`, `autoClick`, `simulateTouch`, and `packetSender`.
+// 4. Read-Only State Bridges:
+//    Plugins can query read-only snapshots of the player position (`getLocalPlayer()`)
+//    and ground items (`getGroundItems()`), but cannot modify internal game engine state.
+// ==============================================================================
 
 import Foundation
 import JavaScriptCore
 
-/// Declarative draw commands emitted by sandboxed community plugins
+/// Declarative draw commands emitted by sandboxed community plugins.
 public struct ScriptDrawCommand {
     public let pluginId: String
     public let layer: String     // "world", "dynamic", "infobox"
@@ -22,10 +48,11 @@ public struct ScriptDrawCommand {
     public let text: String?
 }
 
-/// Sandboxed JavaScriptCore Runtime for Community Plugins
+/// Sandboxed JavaScriptCore Runtime for Community Plugins.
 /// Conforms 100% to Apple App Store Guideline 2.5.2 & W^X security rules.
 /// Zero-JIT interpreted execution, isolated heap, read-only game state, no networking/DOM access.
 public final class SandboxedRuntime {
+    /// Shared singleton runtime instance.
     public static let shared = SandboxedRuntime()
 
     private let vm: JSVirtualMachine
@@ -47,8 +74,9 @@ public final class SandboxedRuntime {
         setupSandboxBridges()
     }
 
+    /// Configure secure, stripped-down sandbox environment without network access.
     private func setupSandboxBridges() {
-        // 1. Remove dangerous web/networking globals
+        // Step 1: Remove dangerous web, network, and thread primitives
         context.evaluateScript("""
             delete this.fetch;
             delete this.XMLHttpRequest;
@@ -57,27 +85,27 @@ public final class SandboxedRuntime {
             delete this.SharedWorker;
         """)
 
-        // 2. Exception Handler
+        // Step 2: Global JavaScript Exception Handler
         context.exceptionHandler = { _, exception in
             if let exc = exception {
                 print("❌ [SandboxedRuntime Exception]: \(exc.toString() ?? "Unknown error")")
             }
         }
 
-        // 3. Read-Only Game State Provider (Immutable JSON bridge)
+        // Step 3: Read-Only Game State Provider (Immutable JSON bridge)
         let getPlayerState: @convention(block) () -> [String: Any] = {
             let player = GameState.shared.localPlayer
             return [
-                "worldX": player.worldLocation.x,
-                "worldY": player.worldLocation.y,
-                "plane": player.worldLocation.plane,
-                "animation": player.animationId,
+                "worldX": player.worldPoint.x,
+                "worldY": player.worldPoint.y,
+                "plane": player.worldPoint.plane,
+                "animation": player.currentAnimation,
                 "isInteracting": player.isInteracting
             ]
         }
         context.setObject(getPlayerState, forKeyedSubscript: "getLocalPlayer" as NSString)
 
-        // 4. Read-Only Ground Items Provider
+        // Step 4: Read-Only Ground Items Provider
         let getGroundItems: @convention(block) () -> [[String: Any]] = {
             return GameState.shared.groundItems.map { item in
                 [
@@ -93,7 +121,7 @@ public final class SandboxedRuntime {
         }
         context.setObject(getGroundItems, forKeyedSubscript: "getGroundItems" as NSString)
 
-        // 5. Declarative Overlay Drawing Sink
+        // Step 5: Declarative Overlay Drawing Sink
         let renderOverlayBlock: @convention(block) (NSDictionary) -> Void = { [weak self] rawCommand in
             guard let self = self else { return }
             let pluginId = rawCommand["pluginId"] as? String ?? "unknown"
@@ -125,7 +153,10 @@ public final class SandboxedRuntime {
         context.setObject(renderOverlayBlock, forKeyedSubscript: "renderOverlay" as NSString)
     }
 
-    /// Validates script source code against Jagex anti-cheat rules before loading
+    /// Validates script source code against Jagex anti-cheat rules before loading.
+    ///
+    /// - Parameter source: Raw JavaScript source code string.
+    /// - Returns: Tuple containing validation boolean and failure reason if blocked.
     public func validateScriptSource(_ source: String) -> (isValid: Bool, reason: String?) {
         for token in forbiddenAstTokens {
             if source.contains(token) {
@@ -135,14 +166,21 @@ public final class SandboxedRuntime {
         return (true, nil)
     }
 
-    /// Loads and registers a community plugin script
+    /// Loads and registers a community plugin script into the sandboxed context.
+    ///
+    /// - Parameters:
+    ///   - id: Unique plugin identifier.
+    ///   - sourceCode: Script code.
+    /// - Returns: True if successfully loaded and verified.
     public func loadPlugin(id: String, sourceCode: String) -> Bool {
+        // Step 1: Pre-execution static analysis audit
         let (isValid, reason) = validateScriptSource(sourceCode)
         guard isValid else {
             print("❌ [SandboxedRuntime] Blocked plugin '\(id)': \(reason ?? "")")
             return false
         }
 
+        // Step 2: Wrap source in CommonJS module closure
         let wrappedSource = """
             (function() {
                 var module = { exports: {} };
@@ -152,6 +190,7 @@ public final class SandboxedRuntime {
             })()
         """
 
+        // Step 3: Evaluate wrapped script inside isolated context
         guard let pluginInstance = context.evaluateScript(wrappedSource), !pluginInstance.isUndefined else {
             print("❌ [SandboxedRuntime] Failed to instantiate plugin '\(id)'")
             return false
@@ -159,7 +198,7 @@ public final class SandboxedRuntime {
 
         loadedPlugins[id] = pluginInstance
 
-        // Call lifecycle startUp
+        // Step 4: Call lifecycle startUp hook if implemented
         if let startUpMethod = pluginInstance.objectForKeyedSubscript("startUp"), !startUpMethod.isUndefined {
             startUpMethod.call(withArguments: [])
         }
@@ -168,7 +207,9 @@ public final class SandboxedRuntime {
         return true
     }
 
-    /// Unloads a community plugin
+    /// Unloads a community plugin and calls its shutDown hook.
+    ///
+    /// - Parameter id: Plugin identifier to unload.
     public func unloadPlugin(id: String) {
         if let pluginInstance = loadedPlugins[id] {
             if let shutDownMethod = pluginInstance.objectForKeyedSubscript("shutDown"), !shutDownMethod.isUndefined {
@@ -179,20 +220,24 @@ public final class SandboxedRuntime {
         }
     }
 
-    /// Dispatches game tick to all active sandboxed plugins
+    /// Dispatches 600ms game tick to all active sandboxed plugins.
+    ///
+    /// - Parameter tick: Monotonically increasing tick counter.
     public func dispatchGameTick(tick: Int) {
         lock.lock()
         queuedDrawCommands.removeAll()
         lock.unlock()
 
-        for (pluginId, pluginInstance) in loadedPlugins {
+        for (_, pluginInstance) in loadedPlugins {
             if let onTickMethod = pluginInstance.objectForKeyedSubscript("onGameTick"), !onTickMethod.isUndefined {
                 onTickMethod.call(withArguments: [tick])
             }
         }
     }
 
-    /// Retrieves collected overlay commands for rendering in Metal pipeline
+    /// Retrieves collected overlay commands for rendering in Metal pipeline.
+    ///
+    /// - Returns: Array of ScriptDrawCommands collected during the tick.
     public func flushDrawCommands() -> [ScriptDrawCommand] {
         lock.lock()
         defer { lock.unlock() }

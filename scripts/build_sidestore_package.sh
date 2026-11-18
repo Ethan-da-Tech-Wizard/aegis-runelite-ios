@@ -1,12 +1,33 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# build_sidestore_package.sh
-# Packages RuneLiteMobile into an optimized .ipa for SideStore sideloading.
-# 100% Free - Zero Apple Developer Account Fee Required.
+# Program: scripts/build_sidestore_package.sh
+# Programmer: Ethan-da-Tech-Wizard
+# Course: CIS 156 / Advanced Systems
+# Last Modified: November 18, 2026
+# Purpose: Packages RuneLiteMobile into an optimized .ipa for SideStore sideloading.
+#          Enables 100% free, zero-Apple-Developer-Account installation with
+#          automated on-device 7-day certificate renewal over local WireGuard VPN.
 # ==============================================================================
 
+# ==============================================================================
+# CIS 156 Educational Overview — SideStore Architecture:
+# ==============================================================================
+# Apple requires non-developer iOS apps to be re-signed every 7 days.
+# SideStore solves this without a Mac or PC by running a local loopback VPN
+# on the iPhone, allowing SideStore to communicate directly with Apple's
+# anisette authentication servers on-device.
+#
+# This script injects SideStoreConfig.plist into the app bundle to enable
+# automatic background certificate refresh.
+# ==============================================================================
+
+# Enforce strict Bash error handling:
+# -e: exit on command error
+# -u: error on unset variable
+# -o pipefail: pipe fails if any command fails
 set -euo pipefail
 
+# Step 1: Resolve directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 IOS_APP_DIR="${REPO_ROOT}/ios_app"
@@ -19,15 +40,15 @@ echo "======================================================================"
 echo "📦 Packaging RuneLiteMobile for SideStore (\$0 Free Sideloading)"
 echo "======================================================================"
 
-# 1. Clean previous build directory
+# Step 2: Clean previous build directory and create Payload staging
 rm -rf "${BUILD_DIR}"
 mkdir -p "${APP_DIR}"
 
-# 2. Copy application metadata & Info.plist
+# Step 3: Copy application metadata & Info.plist
 cp "${IOS_APP_DIR}/Info.plist" "${APP_DIR}/Info.plist"
 cp "${IOS_APP_DIR}/Entitlements.plist" "${APP_DIR}/Entitlements.plist"
 
-# 3. Create SideStore App Configuration
+# Step 4: Inject SideStore Configuration Property List
 cat <<EOF > "${APP_DIR}/SideStoreConfig.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -45,19 +66,19 @@ cat <<EOF > "${APP_DIR}/SideStoreConfig.plist"
 </plist>
 EOF
 
-# 4. Generate mock binary executable if running on non-macOS environment
+# Step 5: Generate mock binary executable if running on non-macOS environment
 if [ ! -f "${APP_DIR}/RuneLiteMobile" ]; then
     echo "Creating stub universal executable for SideStore payload..."
     echo -e '#!/bin/sh\necho "RuneLite Mobile standalone client"' > "${APP_DIR}/RuneLiteMobile"
     chmod +x "${APP_DIR}/RuneLiteMobile"
 fi
 
-# 5. Package into .ipa
+# Step 6: Package into standard zip-compressed .ipa
 echo "Compressing Payload into ${OUTPUT_IPA}..."
 cd "${BUILD_DIR}"
 zip -qr "${OUTPUT_IPA}" "Payload"
 
-# Also update the root RuneLiteMobile.ipa for convenience
+# Step 7: Update root convenience symlink/copy
 cp "${OUTPUT_IPA}" "${REPO_ROOT}/RuneLiteMobile.ipa"
 
 echo "======================================================================"

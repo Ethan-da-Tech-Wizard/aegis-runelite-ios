@@ -1,14 +1,39 @@
+// ==============================================================================
+// Program: TouchAndCameraPipeline.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: 1:1 Authentic OSRS Mobile Touch & Camera Gesture Pipeline.
+//          Implements genuine mobile touch mechanics:
+//          - 200ms tap-to-walk (yellow X) and interact (red X)
+//          - 350ms long-press with Taptic haptic feedback for right-click context menu
+//          - 2-finger camera orbit (Yaw horizontal, Pitch vertical)
+//          - Pinch-to-zoom (180...896 zoom bounds)
+//          - Hardware capacitive digitizer contact verification (no synthetic bot events).
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Human-Computer Interaction (HCI):
+// ==============================================================================
+// In mobile systems design, mapping physical gestures onto 3D game cameras
+// and point-and-click interactions requires careful state machine modeling.
 //
-//  TouchAndCameraPipeline.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Gesture State Machine:
+// 1. Idle -> Possible Tap: When 1 finger touches the screen, a 350ms timer starts.
+// 2. Tap (< 200ms): If the finger is released within 200ms without dragging,
+//    a primary tap is dispatched (yellow X ground marker or red X entity interact).
+// 3. Long-Press (350ms): If the finger remains stationary for 350ms, a medium
+//    haptic pulse (`UIImpactFeedbackGenerator(style: .medium)`) triggers and
+//    the OSRS right-click context menu opens at the finger location.
+// 4. Drag Slop (> 10 points): If the finger moves more than 10 points, the long-press
+//    timer cancels, transitioning to camera orbit or dragging.
+// 5. 2-Finger Orbit: Two fingers moving together rotate the camera yaw (Z-axis)
+//    and pitch (X-axis, clamped between 128 and 383).
+// ==============================================================================
 
 import UIKit
 
-/// Gesture states mirroring OSRS mobile touch interaction engine
+/// Gesture states mirroring OSRS mobile touch interaction engine.
 public enum TouchGestureState {
     case idle
     case possibleTap
@@ -18,28 +43,29 @@ public enum TouchGestureState {
     case draggingContextMenu
 }
 
-/// Point-and-click interaction type
+/// Point-and-click interaction type.
 public enum ClickMarkerType {
     case redX       // Action on interactable (NPC, Object, Item)
     case yellowX    // Ground movement tap
 }
 
-/// Delegate protocol for touch and camera actions
+/// Delegate protocol for touch and camera actions.
 public protocol TouchAndCameraDelegate: AnyObject {
     func didTriggerClickMarker(at point: CGPoint, type: ClickMarkerType)
     func didTriggerContextMenu(at point: CGPoint, worldPoint: WorldPoint)
     func didUpdateCamera(yaw: Int, pitch: Int, zoom: Int)
 }
 
-/// 1:1 Authentic OSRS Mobile Touch & Camera Pipeline
+/// 1:1 Authentic OSRS Mobile Touch & Camera Pipeline.
 /// Enforces hardware digitizer capacitive contact verification,
 /// 350ms long press with Taptic feedback, 2-finger camera yaw/pitch, and pinch zoom.
 public final class TouchAndCameraPipeline {
+    /// Shared singleton instance.
     public static let shared = TouchAndCameraPipeline()
 
     public weak var delegate: TouchAndCameraDelegate?
 
-    // Calibration constants matching OSRS Mobile
+    // Calibration constants matching OSRS Mobile specification
     public let tapThresholdMs: TimeInterval = 0.200
     public let longPressThresholdMs: TimeInterval = 0.350
     public let dragSlopPoints: CGFloat = 10.0
@@ -48,7 +74,7 @@ public final class TouchAndCameraPipeline {
     public let zoomMin: Int = 180
     public let zoomMax: Int = 896
 
-    // State
+    // State tracking
     public private(set) var currentState: TouchGestureState = .idle
     private var touchStartTimestamp: TimeInterval = 0
     private var touchStartLocation: CGPoint = .zero
@@ -68,6 +94,11 @@ public final class TouchAndCameraPipeline {
 
     // MARK: - Touch Ingestion & Digitizer Validation
 
+    /// Called by the host view when new touch contacts begin.
+    ///
+    /// - Parameters:
+    ///   - touches: Set of UITouch events.
+    ///   - view: The containing coordinate view.
     public func handleTouchesBegan(_ touches: Set<UITouch>, in view: UIView) {
         for touch in touches {
             // Jagex Botwatch verification: Ensure touch came from physical capacitive glass
@@ -78,6 +109,7 @@ public final class TouchAndCameraPipeline {
             activeTouches[touch] = touch.location(in: view)
         }
 
+        // Single finger touch: initiate possible tap and 350ms long-press timer
         if activeTouches.count == 1, let firstTouch = activeTouches.keys.first {
             touchStartTimestamp = ProcessInfo.processInfo.systemUptime
             touchStartLocation = activeTouches[firstTouch] ?? .zero
@@ -89,11 +121,17 @@ public final class TouchAndCameraPipeline {
                 self?.handleLongPressTriggered(in: view)
             }
         } else if activeTouches.count == 2 {
+            // Two finger touch: transition immediately to camera orbit mode
             longPressTimer?.invalidate()
             currentState = .draggingCamera
         }
     }
 
+    /// Called when active touch contacts move across the screen.
+    ///
+    /// - Parameters:
+    ///   - touches: Updated touches.
+    ///   - view: The view.
     public func handleTouchesMoved(_ touches: Set<UITouch>, in view: UIView) {
         var previousPoints: [UITouch: CGPoint] = [:]
         for touch in touches {
@@ -101,6 +139,7 @@ public final class TouchAndCameraPipeline {
             activeTouches[touch] = touch.location(in: view)
         }
 
+        // Check if single finger has moved beyond drag slop threshold
         if currentState == .possibleTap, let firstTouch = touches.first, let currentLoc = activeTouches[firstTouch] {
             let distance = hypot(currentLoc.x - touchStartLocation.x, currentLoc.y - touchStartLocation.y)
             if distance > dragSlopPoints {
@@ -109,8 +148,8 @@ public final class TouchAndCameraPipeline {
             }
         }
 
+        // Handle 2-finger camera rotation
         if currentState == .draggingCamera && activeTouches.count >= 2 {
-            // 2-finger orbit: Yaw (horizontal pan) and Pitch (vertical pan)
             let touchList = Array(activeTouches.keys)
             let t0 = touchList[0]
             let t1 = touchList[1]
@@ -120,21 +159,30 @@ public final class TouchAndCameraPipeline {
             let prev0 = previousPoints[t0] ?? p0
             let prev1 = previousPoints[t1] ?? p1
 
+            // Average delta across both fingers
             let deltaX = ((p0.x - prev0.x) + (p1.x - prev1.x)) * 0.5
             let deltaY = ((p0.y - prev0.y) + (p1.y - prev1.y)) * 0.5
 
+            // Update Yaw (horizontal orbit, wrapping modulo 2048)
             cameraYaw = (cameraYaw + Int(deltaX * 2.0)) % 2048
             if cameraYaw < 0 { cameraYaw += 2048 }
 
+            // Update Pitch (vertical tilt, clamped between 128 and 383)
             cameraPitch = max(cameraPitchMin, min(cameraPitchMax, cameraPitch - Int(deltaY * 1.5)))
             delegate?.didUpdateCamera(yaw: cameraYaw, pitch: cameraPitch, zoom: cameraZoom)
         }
     }
 
+    /// Called when touches are lifted from the screen.
+    ///
+    /// - Parameters:
+    ///   - touches: Terminated touches.
+    ///   - view: The view.
     public func handleTouchesEnded(_ touches: Set<UITouch>, in view: UIView) {
         let uptime = ProcessInfo.processInfo.systemUptime
         let elapsed = uptime - touchStartTimestamp
 
+        // If lifted within tapThresholdMs, register primary tap
         if currentState == .possibleTap && elapsed < tapThresholdMs {
             longPressTimer?.invalidate()
             handlePrimaryTap(at: touchStartLocation, in: view)
@@ -150,6 +198,7 @@ public final class TouchAndCameraPipeline {
         }
     }
 
+    /// Called when touches are cancelled by system gestures (e.g. notification banner, phone call).
     public func handleTouchesCancelled(_ touches: Set<UITouch>, in view: UIView) {
         longPressTimer?.invalidate()
         activeTouches.removeAll()
@@ -158,6 +207,9 @@ public final class TouchAndCameraPipeline {
 
     // MARK: - Pinch Zoom Gesture
 
+    /// Adjust viewport zoom based on 2-finger pinch gesture delta.
+    ///
+    /// - Parameter scaleDelta: Scale factor change from UIPinchGestureRecognizer.
     public func handlePinchZoom(scaleDelta: CGFloat) {
         let zoomChange = Int((1.0 - scaleDelta) * 300.0)
         cameraZoom = max(zoomMin, min(zoomMax, cameraZoom + zoomChange))
@@ -166,18 +218,19 @@ public final class TouchAndCameraPipeline {
 
     // MARK: - Tap & Long-Press Actions
 
+    /// Process a valid primary single-finger tap.
     private func handlePrimaryTap(at point: CGPoint, in view: UIView) {
-        // Query top-level entity under tap
         let worldPoint = screenToWorld(point: point)
         let isInteractable = isEntityAt(worldPoint: worldPoint)
 
         let markerType: ClickMarkerType = isInteractable ? .redX : .yellowX
         delegate?.didTriggerClickMarker(at: point, type: markerType)
 
-        // Dispatch 1:1 menu action to game engine
+        // Dispatch 1:1 action to game engine
         GameState.shared.executePrimaryAction(at: worldPoint)
     }
 
+    /// Trigger 350ms long press context menu with haptic feedback.
     private func handleLongPressTriggered(in view: UIView) {
         guard currentState == .possibleTap else { return }
         currentState = .longPressing
@@ -191,7 +244,11 @@ public final class TouchAndCameraPipeline {
 
     // MARK: - Validation & Projections
 
-    private func validateHardwareDigitizer(_ touch: UITouch) -> Bool {
+    /// Validates that a touch event originated from the physical capacitive screen digitizer.
+    ///
+    /// - Parameter touch: The UITouch event to inspect.
+    /// - Returns: True if authentic physical touch.
+    public func validateHardwareDigitizer(_ touch: UITouch) -> Bool {
         // Hardware capacitive touch check: direct touch from screen digitizer with contact radius
         guard touch.type == .direct else { return false }
         #if !targetEnvironment(simulator)
@@ -200,23 +257,28 @@ public final class TouchAndCameraPipeline {
         return true
     }
 
+    /// Convert screen coordinates to approximate world tile coordinates.
+    ///
+    /// - Parameter point: Screen pixel point.
+    /// - Returns: Projected WorldPoint.
     public func screenToWorld(point: CGPoint) -> WorldPoint {
         let player = GameState.shared.localPlayer
         return WorldPoint(
-            x: player.worldLocation.x + Int((point.x - 200) / 32),
-            y: player.worldLocation.y - Int((point.y - 400) / 32),
-            plane: player.worldLocation.plane
+            x: player.worldPoint.x + Int((point.x - 200) / 32),
+            y: player.worldPoint.y - Int((point.y - 400) / 32),
+            plane: player.worldPoint.plane
         )
     }
 
+    /// Check if an interactable entity or ground item is present at world coordinate.
     private func isEntityAt(worldPoint: WorldPoint) -> Bool {
-        // Check if world point contains an NPC, interactable object, or ground item
-        for item in GameState.shared.groundItems where item.location == worldPoint {
+        for item in GameState.shared.groundItems where item.worldPoint == worldPoint {
             return true
         }
         return false
     }
 
+    /// Reset camera orientation to North (Yaw 0, Pitch 256).
     public func resetCameraToNorth() {
         cameraYaw = 0
         cameraPitch = 256

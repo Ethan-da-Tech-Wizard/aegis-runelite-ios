@@ -1,14 +1,35 @@
+// ==============================================================================
+// Program: PluginSettingsView.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: SwiftUI Configuration & Jagex Account Authentication Modal View.
+//          Provides toggle controls for bundled plugins (Tile Indicators,
+//          Ground Items, XP Tracker, Idle Notifier), triggers OAuth2 PKCE login,
+//          displays Jagex compliance verification status, and presents Plugin Hub.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & SwiftUI Form Architecture:
+// ==============================================================================
+// In modern mobile application architecture, user settings views are organized
+// into grouped visual sections using SwiftUI's `List` and `Section` containers.
 //
-//  PluginSettingsView.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Key SwiftUI Concepts:
+// 1. Reactive State Binding (`@ObservedObject`):
+//    `pluginManager` and `authManager` conform to `ObservableObject`. Whenever
+//    a plugin state or login status changes, SwiftUI automatically invalidates
+//    and redraws the affected rows.
+// 2. Custom Binding Creation (`Binding(get:set:)`):
+//    Creates a two-way reactive bridge between a Swift boolean property and a
+//    native `Toggle` switch, saving updates directly to persistent `UserDefaults`.
+// 3. Modal Sheet Presentation (`.sheet(isPresented:)`):
+//    Presents the `PluginHubView` as an interactive pull-down modal sheet.
+// ==============================================================================
 
 import SwiftUI
 
-/// SwiftUI configuration panel for managing RuneLite plugins & Jagex compliance status
+/// SwiftUI configuration panel for managing RuneLite plugins & Jagex compliance status.
 public struct PluginSettingsView: View {
     @ObservedObject var pluginManager = PluginManager.shared
     @ObservedObject var authManager = JagexOAuthManager.shared

@@ -1,15 +1,37 @@
+// ==============================================================================
+// Program: EventBus.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Decoupled Publish-Subscribe Event Dispatch Bus for RuneLite Mobile iOS.
+//          Enables game loop, network daemon, and touch pipeline to broadcast
+//          typed events (ticks, stat changes, item spawns, menu entries) to
+//          active plugins without tight coupling.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Publish-Subscribe (Pub/Sub) Pattern:
+// ==============================================================================
+// In software design patterns, the "Observer" or "Publish-Subscribe" pattern
+// establishes a one-to-many dependency between objects.
 //
-//  EventBus.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Why We Use an EventBus:
+// - Without an EventBus, the game engine would need direct hardcoded references
+//   to every single plugin (Ground Items, Agility, XP Tracker, Tile Indicators, etc.).
+//   This causes "tight coupling" — modifying or removing one plugin can break
+//   the entire game engine.
+// - With an EventBus, components are "loosely coupled":
+//   1. Publishers: The engine simply fires `EventBus.shared.publish(GameTickEvent(tickCount: 42))`.
+//   2. Subscribers: Any plugin interested in tick events calls `subscribe()`.
+//   3. Thread-Safety: An internal `NSLock` guarantees that subscribing, unsubscribing,
+//      and event publishing do not cause multithreaded race conditions or crashes.
+// ==============================================================================
 
 import Foundation
 
 // MARK: - Event Definitions
 
+/// Fired every 600ms when the Old School RuneScape engine tick increments.
 public struct GameTickEvent: Sendable {
     public let tickCount: Int
     public init(tickCount: Int) {
@@ -17,6 +39,7 @@ public struct GameTickEvent: Sendable {
     }
 }
 
+/// Fired every screen redraw frame with the delta elapsed time in seconds.
 public struct ClientTickEvent: Sendable {
     public let deltaTime: TimeInterval
     public init(deltaTime: TimeInterval) {
@@ -24,6 +47,7 @@ public struct ClientTickEvent: Sendable {
     }
 }
 
+/// Fired whenever a player earns experience or levels up a skill.
 public struct StatChangedEvent: Sendable {
     public let skillName: String
     public let currentLevel: Int
@@ -38,6 +62,7 @@ public struct StatChangedEvent: Sendable {
     }
 }
 
+/// Fired when an item appears on the ground.
 public struct ItemSpawnedEvent: Sendable {
     public let item: Item
     public init(item: Item) {
@@ -45,6 +70,7 @@ public struct ItemSpawnedEvent: Sendable {
     }
 }
 
+/// Fired when an item is picked up or despawns from the ground.
 public struct ItemDespawnedEvent: Sendable {
     public let item: Item
     public init(item: Item) {
@@ -52,6 +78,7 @@ public struct ItemDespawnedEvent: Sendable {
     }
 }
 
+/// Fired when a right-click or tap context menu entry is registered.
 public struct MenuEntryAddedEvent: Sendable {
     public let option: String
     public let target: String
@@ -68,6 +95,7 @@ public struct MenuEntryAddedEvent: Sendable {
     }
 }
 
+/// Fired when a player character changes animations (e.g. idle to mining, casting, or running).
 public struct PlayerAnimationChangedEvent: Sendable {
     public let player: PlayerActor
     public let oldAnimation: Int
@@ -82,7 +110,9 @@ public struct PlayerAnimationChangedEvent: Sendable {
 
 // MARK: - EventBus Implementation
 
+/// Thread-safe publish-subscribe message broker.
 public final class EventBus {
+    /// Shared singleton instance.
     public static let shared = EventBus()
 
     private let lock = NSLock()
@@ -90,12 +120,19 @@ public final class EventBus {
 
     private init() {}
 
-    /// Subscribe an observer to a specific event type
+    /// Subscribe an observer to a specific event type.
+    ///
+    /// - Parameters:
+    ///   - observer: The subscribing object instance (used as lifecycle key).
+    ///   - eventType: The type of event to listen for (e.g. GameTickEvent.self).
+    ///   - handler: Closure invoked when a matching event is published.
     public func subscribe<T>(_ observer: AnyObject, eventType: T.Type, handler: @escaping (T) -> Void) {
         lock.lock()
         defer { lock.unlock() }
 
+        // Use ObjectIdentifier as a unique key for the observer instance
         let id = ObjectIdentifier(observer)
+        // Wrap closure with type-casting check
         let wrapper: (Any) -> Void = { event in
             if let typedEvent = event as? T {
                 handler(typedEvent)
@@ -109,7 +146,9 @@ public final class EventBus {
         }
     }
 
-    /// Unsubscribe an observer from all events
+    /// Unsubscribe an observer from all events (typically called in plugin deinit or shutDown).
+    ///
+    /// - Parameter observer: The object to remove from the subscriber dictionary.
     public func unsubscribe(_ observer: AnyObject) {
         lock.lock()
         defer { lock.unlock() }
@@ -117,12 +156,16 @@ public final class EventBus {
         subscribers.removeValue(forKey: id)
     }
 
-    /// Publish an event to all subscribed listeners
+    /// Publish an event to all subscribed listeners.
+    ///
+    /// - Parameter event: The event instance being broadcast.
     public func publish<T>(_ event: T) {
         lock.lock()
+        // Extract snapshot of handlers to prevent deadlocks during callback execution
         let handlers = subscribers.values.flatMap { $0 }
         lock.unlock()
 
+        // Dispatch event to each listener
         for handler in handlers {
             handler(event)
         }

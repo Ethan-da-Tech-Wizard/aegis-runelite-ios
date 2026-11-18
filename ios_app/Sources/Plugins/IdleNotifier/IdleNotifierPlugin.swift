@@ -1,17 +1,42 @@
+// ==============================================================================
+// Program: IdleNotifierPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Idle & Low-Resource Alert Plugin with iOS Haptic & Notification Engine.
+//          Monitors player character animation states to detect when AFK skilling
+//          (woodcutting, fishing, mining) completes, triggering physical Taptic
+//          vibrations and local user notifications.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & State Monitoring:
+// ==============================================================================
+// In event-driven system design, background monitors track state changes and alert
+// users when tasks reach completion.
 //
-//  IdleNotifierPlugin.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// How Idle Detection Works:
+// 1. Animation State Monitoring:
+//    When a player is actively performing an action (e.g. chopping a tree or casting
+//    a fishing rod), their `currentAnimation` matches an action ID (e.g. 879 for
+//    woodcutting). When the tree depletes or the inventory fills, the character
+//    reverts to the standing idle animation (`-1` or `808`).
+// 2. 3-Tick Debounce Threshold:
+//    In OSRS, 1 tick = 600ms. A 3-tick threshold equals 1.8 seconds (3 * 0.6s).
+//    Debouncing prevents false alarms during brief 1-tick movement interruptions.
+// 3. Multi-Channel Alert:
+//    - Haptics: `UINotificationFeedbackGenerator().notificationOccurred(.warning)`
+//      delivers a distinct physical vibration pattern to the iPhone.
+//    - Local Notifications: `UNUserNotificationCenter` posts a notification banner
+//      even if the player is looking away or multitasking.
+// ==============================================================================
 
 import Foundation
 import CoreGraphics
 import UIKit
 import UserNotifications
 
-/// Idle and combat health/prayer notifier for iOS
+/// Idle and combat health/prayer notifier for iOS.
 public final class IdleNotifierPlugin: Plugin {
     public let id: String = "idle_notifier"
     public let name: String = "Idle Notifier"
@@ -31,6 +56,7 @@ public final class IdleNotifierPlugin: Plugin {
 
     public init() {}
 
+    /// Lifecycle hook: Request notification permissions and subscribe to GameTickEvent.
     public func startUp() {
         requestNotificationPermissions()
         EventBus.shared.subscribe(self, eventType: GameTickEvent.self) { [weak self] event in
@@ -39,11 +65,13 @@ public final class IdleNotifierPlugin: Plugin {
         print("✅ [IdleNotifierPlugin] Started up.")
     }
 
+    /// Lifecycle hook: Unsubscribe from EventBus.
     public func shutDown() {
         EventBus.shared.unsubscribe(self)
         print("🛑 [IdleNotifierPlugin] Shut down.")
     }
 
+    /// Request Apple UserNotification permissions for alert banners, sounds, and badges.
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
@@ -52,32 +80,43 @@ public final class IdleNotifierPlugin: Plugin {
         }
     }
 
+    /// Check character animation state every 600ms game tick.
+    ///
+    /// - Parameter tick: Active game tick index.
     private func checkIdleState(tick: Int) {
         let player = GameState.shared.localPlayer
 
         // Idle animation detection (Standard standing idle is -1 or 808)
         if player.currentAnimation == -1 || player.currentAnimation == 808 {
             idleTickCount += 1
-            if idleTickCount == 3 && alertOnIdle { // 3 ticks (1.8s) of uninterrupted idle
+            // 3 ticks (1.8s) of uninterrupted idle triggers alert
+            if idleTickCount == 3 && alertOnIdle {
                 triggerNotification(title: "RuneLite Alert", body: "Your character is now idle!")
             }
         } else {
+            // Player is performing an active skilling or combat animation; reset counter
             idleTickCount = 0
         }
     }
 
+    /// Dispatch physical haptic vibration and schedule local notification banner.
+    ///
+    /// - Parameters:
+    ///   - title: Notification title string.
+    ///   - body: Alert message body.
     private func triggerNotification(title: String, body: String) {
-        guard Date().timeIntervalSince(lastAlertDate) > 10.0 else { return } // 10s cooldown
+        // Enforce 10-second alert cooldown to avoid spamming the user
+        guard Date().timeIntervalSince(lastAlertDate) > 10.0 else { return }
         lastAlertDate = Date()
 
-        // 1. Trigger iOS Haptic Feedback
+        // 1. Trigger iOS Taptic Engine Haptic Feedback
         DispatchQueue.main.async {
             let feedback = UINotificationFeedbackGenerator()
             feedback.prepare()
             feedback.notificationOccurred(.warning)
         }
 
-        // 2. Schedule Local Notification
+        // 2. Schedule Local Notification via UNUserNotificationCenter
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -91,8 +130,8 @@ public final class IdleNotifierPlugin: Plugin {
         UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
     }
 
+    /// IdleNotifier is an alert plugin; returns empty overlay draw list.
     public func renderOverlay(context: MetalRenderContext) -> [OverlayDrawCommand] {
-        // Pure notification/haptic plugin; no persistent overlay drawn
         return []
     }
 }

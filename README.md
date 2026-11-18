@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> ### ⚠️ AWAITING JAGEX APPROVAL — PLEASE DO NOT DOWNLOAD OR USE YET
+> This software is an independent research project and technology demonstration. It is currently awaiting formal Jagex review and approval. Do not download, install, or use this client on live Old School RuneScape accounts until official approval has been certified.
+
 # Aegis-RuneLite-iOS
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)

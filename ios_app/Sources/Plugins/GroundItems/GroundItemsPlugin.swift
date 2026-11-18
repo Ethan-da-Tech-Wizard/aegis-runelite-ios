@@ -1,23 +1,46 @@
+// ==============================================================================
+// Program: GroundItemsPlugin.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Ground Loot Highlighting and Economic Valuation Overlay Plugin.
+//          Renders color-coded text tags and contrast bounding boxes over dropped
+//          items on the 3D game canvas according to Grand Exchange market prices.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Economic Data Visualization:
+// ==============================================================================
+// In multiplayer online games with complex trading economies, quickly identifying
+// valuable item drops among piles of clutter is essential for efficient gameplay.
 //
-//  GroundItemsPlugin.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Overlay Rendering Strategy:
+// 1. World-to-Screen Projection:
+//    Iterates through `gameState.groundItems`. Each item's tile coordinate is projected
+//    into 2D screen coordinates (`Perspective.localToCanvas`).
+// 2. Legibility Optimization (Contrast Bounding Boxes):
+//    Text drawn directly over 3D grass, dungeon floors, or water textures is hard
+//    to read. We compute the text width dynamically and draw a dark semi-transparent
+//    background box (`UIColor.black.withAlphaComponent(0.65)`) behind the text.
+// 3. Color-Coded Tiers:
+//    - Low: White text (common drops).
+//    - Medium: Light green (notable runes, herbs).
+//    - High: Orange (rare weapons, armor).
+//    - Insane: Pink (ultra-rare uniques > 1M GP).
+// ==============================================================================
 
 import Foundation
 import CoreGraphics
 import UIKit
 
-/// Ground Items overlay plugin displaying dropped loot, values, and despawn timers
+/// Ground Items overlay plugin displaying dropped loot, values, and despawn timers.
 public final class GroundItemsPlugin: Plugin {
     public let id: String = "ground_items"
     public let name: String = "Ground Items"
     public let description: String = "Highlights dropped items with color-coding based on Grand Exchange / High Alchemy value."
     public var isEnabled: Bool = true
 
-    // Configuration
+    // Configuration settings
     public var showGePrice: Bool = true
     public var showHaPrice: Bool = false
     public var showDespawnTimer: Bool = true
@@ -25,20 +48,28 @@ public final class GroundItemsPlugin: Plugin {
 
     public init() {}
 
+    /// Lifecycle hook: Started up.
     public func startUp() {
         print("✅ [GroundItemsPlugin] Started up.")
     }
 
+    /// Lifecycle hook: Shut down.
     public func shutDown() {
         print("🛑 [GroundItemsPlugin] Shut down.")
     }
 
+    /// Renders text labels and background boxes for all ground items in view.
+    ///
+    /// - Parameter context: MetalRenderContext containing scene and camera data.
+    /// - Returns: Array of OverlayDrawCommands to be rendered by Metal.
     public func renderOverlay(context: MetalRenderContext) -> [OverlayDrawCommand] {
         var commands: [OverlayDrawCommand] = []
         let gameState = context.gameState
         let viewport = context.viewportSize
 
+        // Step 1: Iterate over each ground item in the game state
         for item in gameState.groundItems {
+            // Step 2: Ensure item has a valid world coordinate inside the 104x104 scene
             guard let worldPoint = item.worldPoint,
                   let local = worldPoint.toLocalPoint(baseX: gameState.baseTileX, baseY: gameState.baseTileY) else {
                 continue
@@ -46,7 +77,7 @@ public final class GroundItemsPlugin: Plugin {
 
             let tileHeight = gameState.getTileHeight(sceneX: local.sceneX, sceneY: local.sceneY)
 
-            // Project center of tile to screen
+            // Step 3: Project 3D ground tile position to 2D screen coordinates
             guard let screenPos = Perspective.localToCanvas(
                 localPoint: local,
                 z: tileHeight,
@@ -61,10 +92,10 @@ public final class GroundItemsPlugin: Plugin {
                 continue
             }
 
-            // Determine item color based on value tier
+            // Step 4: Determine text color based on market value tier
             let tierColor = uiColorForTier(item.valueTier)
 
-            // Format label text
+            // Step 5: Format label text with quantity and Grand Exchange total value
             var labelText = item.name
             if item.quantity > 1 {
                 labelText += " (\(item.quantity))"
@@ -73,14 +104,14 @@ public final class GroundItemsPlugin: Plugin {
                 labelText += " [\(formatGp(item.totalGeValue))]"
             }
 
-            // Compute background bounding box
+            // Step 6: Calculate dimensions for the dark background bounding box
             let textWidth: CGFloat = CGFloat(labelText.count * 7 + 12)
             let boxRect = CGRect(x: screenPos.x - textWidth / 2, y: screenPos.y - 12, width: textWidth, height: 20)
 
-            // Add background box draw command
+            // Step 7: Emit bounding box draw command for contrast legibility
             commands.append(.boundingBox(rect: boxRect, color: UIColor.black.withAlphaComponent(0.65).cgColor, cornerRadius: 3.0))
 
-            // Add text label draw command
+            // Step 8: Emit text draw command with tier accent color
             commands.append(.text(
                 text: labelText,
                 position: CGPoint(x: boxRect.minX + 6, y: boxRect.minY + 4),
@@ -93,6 +124,7 @@ public final class GroundItemsPlugin: Plugin {
         return commands
     }
 
+    /// Map ItemValueTier to appropriate display UIColor.
     private func uiColorForTier(_ tier: ItemValueTier) -> UIColor {
         switch tier {
         case .hidden: return .gray
@@ -103,6 +135,7 @@ public final class GroundItemsPlugin: Plugin {
         }
     }
 
+    /// Format integer GP amounts with K (thousands) or M (millions) suffixes.
     private func formatGp(_ amount: Int) -> String {
         if amount >= 10_000_000 {
             return "\(amount / 1_000_000)M"

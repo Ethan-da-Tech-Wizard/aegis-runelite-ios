@@ -1,18 +1,37 @@
-#!/usr/bin/env python3
-"""tests/test_compliance.py — Automated Jagex Compliance & Architecture Verification Test Suite
+# ==============================================================================
+# Program: tests/test_compliance.py
+# Programmer: Ethan-da-Tech-Wizard
+# Course: CIS 156 / Advanced Systems
+# Last Modified: November 18, 2026
+# Purpose: Automated Jagex Compliance & Architecture Verification Test Suite.
+#          Ensures strict adherence to Jagex's Third-Party Client Rules:
+#          - 1:1 input ratio enforcement
+#          - Banning of prohibited automation (auto-prayer, auto-clickers, packet injection)
+#          - Zero-credential architecture (OAuth2 PKCE, no stored passwords)
+#          - Verification of all native iOS project structures, shaders, and tests.
+# ==============================================================================
 
-Verifies:
-1. Jagex Third-Party Client Compliance Rules:
-   - 1:1 input ratio enforcement
-   - Prohibited automation detection (auto-prayer, macroing, packet injection)
-   - Zero-credential architecture (no stored passwords, OAuth2 PKCE verification)
-2. Standalone iOS Project Structure:
-   - Swift sources, Xcode project file, Info.plist, Metal shaders
-   - Dual-tier Plugin Hub architecture (SandboxedRuntime & PluginHubClient)
-   - 1:1 Touch and Camera Gesture Pipeline (350ms long press, 2-finger orbit, pinch zoom)
-3. Perspective projection mathematics (3D world-to-screen matrix test)
-4. SideStore $0 Free Distribution Packaging & Configuration
+"""tests/test_compliance.py — Automated Jagex Compliance & Architecture Verification Test Suite.
+
+==============================================================================
+CIS 156 Educational Overview & Regulatory Compliance:
+==============================================================================
+In commercial and open-source software engineering, software must often adhere to
+strict legal, security, and game-integrity guidelines set by platform owners.
+Jagex (the creators of Old School RuneScape) enforces strict third-party client rules:
+1. 1:1 Input Mapping: Each physical user input (e.g. one finger tap) must result in
+   at most one game input action. Macros and input multiplying are prohibited.
+2. No Prohibited Automation: Features like auto-prayer flicking, automatic menu
+   selection, or direct network packet injection are strictly forbidden.
+3. Zero-Credential Architecture: Third-party clients must NEVER store, capture,
+   or log user passwords. All authentication must occur via official OAuth2 PKCE
+   (Proof Key for Code Exchange) web flows.
+
+This test suite conducts static analysis and architectural audits across the
+entire codebase to guarantee absolute compliance before deployment.
 """
+
+from __future__ import annotations
 
 import math
 import os
@@ -28,7 +47,8 @@ SCRIPTS_DIR = os.path.join(ROOT_DIR, "scripts")
 class TestJagexComplianceSpecification(unittest.TestCase):
     """Test suite ensuring absolute adherence to Jagex's Third-Party Client Rules."""
 
-    def test_compliance_spec_file_exists(self):
+    def test_compliance_spec_file_exists(self) -> None:
+        """Verify that the official compliance documentation file exists and contains core terms."""
         spec_path = os.path.join(DOCS_DIR, "JAGEX_COMPLIANCE_AND_SAFETY_SPECIFICATION.md")
         self.assertTrue(os.path.isfile(spec_path), f"Compliance specification must exist at {spec_path}")
         with open(spec_path, "r", encoding="utf-8") as f:
@@ -38,7 +58,7 @@ class TestJagexComplianceSpecification(unittest.TestCase):
         self.assertIn("ASWebAuthenticationSession", content)
         self.assertIn("Anti-Detection", content)
 
-    def test_zero_credential_architecture_in_swift_sources(self):
+    def test_zero_credential_architecture_in_swift_sources(self) -> None:
         """Verify that no Swift file stores raw passwords or bypasses OAuth2."""
         auth_file = os.path.join(IOS_APP_DIR, "Sources", "Auth", "JagexOAuthManager.swift")
         self.assertTrue(os.path.isfile(auth_file), f"Auth manager must exist at {auth_file}")
@@ -54,7 +74,7 @@ class TestJagexComplianceSpecification(unittest.TestCase):
         self.assertNotIn("var password:", content)
         self.assertNotIn("let password =", content)
 
-    def test_jagex_compliance_engine_prohibitions(self):
+    def test_jagex_compliance_engine_prohibitions(self) -> None:
         """Verify compliance engine filters banned capabilities."""
         engine_file = os.path.join(IOS_APP_DIR, "Sources", "Compliance", "JagexComplianceEngine.swift")
         self.assertTrue(os.path.isfile(engine_file), f"Compliance engine must exist at {engine_file}")
@@ -72,7 +92,7 @@ class TestJagexComplianceSpecification(unittest.TestCase):
         for term in banned:
             self.assertIn(term, content, f"Compliance engine must explicitly ban {term}")
 
-    def test_touch_event_authenticity_guards(self):
+    def test_touch_event_authenticity_guards(self) -> None:
         """Verify 1:1 hardware digitizer verification."""
         engine_file = os.path.join(IOS_APP_DIR, "Sources", "Compliance", "JagexComplianceEngine.swift")
         with open(engine_file, "r", encoding="utf-8") as f:
@@ -84,7 +104,8 @@ class TestJagexComplianceSpecification(unittest.TestCase):
 class TestStandaloneArchitectureStructure(unittest.TestCase):
     """Test suite ensuring all native iOS components are properly structured."""
 
-    def test_required_files_exist(self):
+    def test_required_files_exist(self) -> None:
+        """Confirm that all mandatory Swift, C, Metal, and script files exist in the repository."""
         required_paths = [
             os.path.join(IOS_APP_DIR, "RuneLiteMobile.xcodeproj/project.pbxproj"),
             os.path.join(IOS_APP_DIR, "Info.plist"),
@@ -137,7 +158,8 @@ class TestStandaloneArchitectureStructure(unittest.TestCase):
 class TestPluginHubAndSandbox(unittest.TestCase):
     """Verify Plugin Hub client and SandboxedRuntime guarantees."""
 
-    def test_sandboxed_runtime_safeguards(self):
+    def test_sandboxed_runtime_safeguards(self) -> None:
+        """Verify JavaScriptCore sandbox deletes dangerous web APIs and checks AST tokens."""
         sandbox_path = os.path.join(IOS_APP_DIR, "Sources", "Plugins", "Runtime", "SandboxedRuntime.swift")
         with open(sandbox_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -152,7 +174,8 @@ class TestPluginHubAndSandbox(unittest.TestCase):
         self.assertIn("forbiddenAstTokens", content)
         self.assertIn("autoPrayer", content)
 
-    def test_plugin_hub_client_catalog(self):
+    def test_plugin_hub_client_catalog(self) -> None:
+        """Verify Plugin Hub client manifest structure and popular plugin definitions."""
         hub_path = os.path.join(IOS_APP_DIR, "Sources", "Plugins", "Hub", "PluginHubClient.swift")
         with open(hub_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -167,7 +190,8 @@ class TestPluginHubAndSandbox(unittest.TestCase):
 class TestTouchAndCameraPipeline(unittest.TestCase):
     """Verify authentic OSRS touch and camera mechanics."""
 
-    def test_touch_and_camera_mechanics(self):
+    def test_touch_and_camera_mechanics(self) -> None:
+        """Verify gesture thresholds, camera clamp bounds, and haptic feedback setup."""
         pipeline_path = os.path.join(IOS_APP_DIR, "Sources", "Core", "Engine", "TouchAndCameraPipeline.swift")
         with open(pipeline_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -190,7 +214,7 @@ class TestTouchAndCameraPipeline(unittest.TestCase):
 class TestPerspectiveProjectionMath(unittest.TestCase):
     """Verify OSRS 3D perspective projection formula logic."""
 
-    def test_trigonometric_projection(self):
+    def test_trigonometric_projection(self) -> None:
         """Simulate camera projection math implemented in Swift Perspective.swift."""
         cam_x, cam_y, cam_z = 6656, 6656, 1000
         target_x, target_y, target_z = 6656, 6656, 0

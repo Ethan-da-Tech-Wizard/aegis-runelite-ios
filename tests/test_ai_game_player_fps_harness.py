@@ -1,7 +1,29 @@
-#!/usr/bin/env python3
-"""
-Unit test suite for HOWITZER-017 Interactive AI Game Player, Offscreen OCR/HID
-Controller & Live FPS/Frame-Time Rating Harness (`scripts/ai_game_player_fps_harness.py`).
+# ==============================================================================
+# Program: tests/test_ai_game_player_fps_harness.py
+# Programmer: Ethan-da-Tech-Wizard
+# Course: CIS 156 / Advanced Systems
+# Last Modified: November 18, 2026
+# Purpose: Unit Test Suite for AI Game Player, Offscreen OCR/HID Controller &
+#          Live FPS/Frame-Time Benchmark Rating Harness.
+#          Tests hermetic offscreen SDL dummy video driver operation, HID safety
+#          guards, optical character recognition (OCR) token verification,
+#          multi-engine library discovery, and VRAM budget headroom calculations.
+# ==============================================================================
+
+"""tests/test_ai_game_player_fps_harness.py — Unit test suite for Neural Gamer FPS Harness.
+
+==============================================================================
+CIS 156 Educational Overview & Test Verification:
+==============================================================================
+This test module verifies complex game engine telemetry and robotics benchmarking:
+1. Headless Video Isolation: Confirms `SDL_VIDEODRIVER=dummy` is active, guaranteeing
+   that rendering occurs offscreen without opening desktop windows.
+2. Safety Interlocks: Confirms that `check_hid_safety_guard` blocks simulated input
+   if the physical workstation was touched within 45 seconds.
+3. Optical Character Recognition (OCR): Confirms that synthetic HUD strings rendered
+   into PNG framebuffers can be accurately recognized with >= 75% token similarity.
+4. Pacing Telemetry: Validates that frame-time pacing, 1% lows, and smoothness
+   ratings outperform unmanaged baseline executions.
 """
 
 from __future__ import annotations
@@ -13,6 +35,7 @@ import sys
 import tempfile
 import unittest
 
+# Ensure the repository root is on sys.path for direct module resolution
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -24,8 +47,13 @@ except ImportError:
 
 
 class TestAIGamePlayerFPSHarness(unittest.TestCase):
+    """Test cases for AI gameplay simulation, frame pacing, and safety guards."""
+
     def test_offscreen_and_hid_safety_guard(self) -> None:
+        """Verify SDL dummy video driver and hardware input safety interlocks."""
+        # Ensure offscreen dummy driver is configured to prevent window creation
         self.assertEqual(os.environ.get("SDL_VIDEODRIVER"), "dummy")
+
         # Offscreen hermetic mode is always safe even if user just moved mouse (idle=0.0s)
         g_hermetic = harness.check_hid_safety_guard(
             offscreen_hermetic=True,
@@ -34,7 +62,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
         self.assertTrue(g_hermetic["safe_to_proceed"])
         self.assertFalse(g_hermetic["physical_desktop_dispatch_allowed"])
 
-        # Physical desktop mode is blocked when idle < 45.0s
+        # Physical desktop mode is blocked when idle < 45.0s (user is actively working)
         g_busy = harness.check_hid_safety_guard(
             offscreen_hermetic=False,
             idle_probe_fn=lambda: 12.5,
@@ -42,7 +70,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
         self.assertFalse(g_busy["safe_to_proceed"])
         self.assertFalse(g_busy["physical_desktop_dispatch_allowed"])
 
-        # Physical desktop mode is allowed only when idle >= 45.0s
+        # Physical desktop mode is allowed only when idle >= 45.0s (workstation is idle)
         g_quiet = harness.check_hid_safety_guard(
             offscreen_hermetic=False,
             idle_probe_fn=lambda: 50.0,
@@ -51,6 +79,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
         self.assertTrue(g_quiet["physical_desktop_dispatch_allowed"])
 
     def test_desktop_control_bridge_inspection_read_only(self) -> None:
+        """Verify desktop window manager bridge inspection returns valid structure."""
         info = harness.inspect_desktop_control_bridge()
         self.assertIn("available", info)
         if info["available"]:
@@ -59,21 +88,27 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
             self.assertEqual(info["sample_hyprlang_focus_dispatch"][0], "hyprctl")
 
     def test_offscreen_png_render_and_ocr_extraction(self) -> None:
+        """Verify synthetic HUD banner rendering to PNG and optical text extraction."""
         banner = "KEY A APPLE"
+        # Render string into an in-memory PNG byte stream
         png_bytes = harness.render_hud_text_to_png_bytes(banner, scale=3)
+        # Check standard PNG magic bytes: 0x89 'P' 'N' 'G' '\r' '\n' 0x1A '\n'
         self.assertTrue(png_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertGreater(len(png_bytes), 200)
 
+        # Run OCR extraction
         ocr_text, engine = harness.ocr_hud_png_bytes(
             png_bytes,
             expected_hint=banner,
             use_tesseract=True,
         )
         self.assertIn(engine, ("tesseract_cli", "offscreen_bitmap_decoder"))
+        # Verify text similarity exceeds 75%
         sim = harness.compute_ocr_token_similarity(banner, ocr_text)
         self.assertGreaterEqual(sim, 75.0)
 
     def test_virtual_hid_action_dispatch_and_policy_fallback(self) -> None:
+        """Verify rule-based decision trees for discrete gameplay actions."""
         for game_id in ("baby_game", "OSRS", "Ult_Gaming", "kid_game", "iron_front_ue5"):
             act = harness.query_local_llm_game_action(
                 game_id=game_id,
@@ -87,6 +122,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
             self.assertGreaterEqual(act.y, 0)
 
     def test_multi_engine_game_catalog_discovery_and_vram_budgets(self) -> None:
+        """Verify filesystem library scanning and VRAM budget rating."""
         if os.environ.get("ETHAN_CERTIFY_HERMETIC") == "1":
             self.skipTest("Physical game library inventory is outside the certifier's isolated HOME.")
         if not harness.GAMEDRIVE_STEAM_COMMON.exists() and not harness.LOCAL_STEAM_COMMON.exists():
@@ -126,6 +162,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
         self.assertGreater(bf1.vram_headroom_governed_mb, 1000)
 
     def test_governed_beats_baseline_fps_and_smoothness_rating(self) -> None:
+        """Verify that memory governance improves average FPS and reduces frame jitter."""
         sim = harness.OffscreenGameSimulator(use_tesseract=False, allow_network_llm=False)
         comp = sim.run_game_benchmark(
             game_id="baby_game",
@@ -143,6 +180,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
         self.assertEqual(comp.governed.ai_smoothness_grade, "S")
 
     def test_full_harness_suite_artifact_generation(self) -> None:
+        """Verify end-to-end benchmark suite execution and JSON/Markdown report output."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_root = Path(tmpdir)
             json_out = tmp_root / "benchmarks.json"

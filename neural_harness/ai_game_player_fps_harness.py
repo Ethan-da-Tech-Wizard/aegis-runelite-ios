@@ -1,39 +1,45 @@
 #!/usr/bin/env python3
+# ==============================================================================
+# Program: neural_harness/ai_game_player_fps_harness.py
+# Programmer: Ethan-da-Tech-Wizard
+# Course: CIS 156 / Advanced Systems
+# Last Modified: November 18, 2026
+# Purpose: HOWITZER-017 Interactive AI Game Player & FPS Benchmarking Harness.
+#          Provides hermetic offscreen SDL dummy rendering, optical character
+#          recognition (OCR) HUD telemetry, rule-based & neural game action
+#          dispatching, and frame-time pacing benchmarks (1% lows, jitter, VRAM).
+# ==============================================================================
+
 """
 HOWITZER-017: Interactive AI Game Player, Offscreen Frame/OCR Inspector,
 Virtual Keyboard/Mouse Controller & Live FPS/Frame-Time Rating Harness
 (`scripts/ai_game_player_fps_harness.py`).
 
-Safety Architecture (Mandatory):
-  • 100% Hermetic Offscreen Execution by Default:
-    Sets `SDL_VIDEODRIVER=dummy` and `SDL_AUDIODRIVER=dummy`, renders HUD/Canvas
-    framebuffers entirely in offscreen memory, and dispatches virtual keyboard/mouse
-    actions (`KEY_PRESS`, `MOUSE_CLICK`, `MOVE`, `COMBO`) into isolated sandboxed
-    game state loops so Ethan's physical cursor and keyboard focus are NEVER touched.
-  • Hardware HID Interrupt Guard (`probe_linux_hardware_hid_idle_seconds() >= 45.0`):
-    Any optional inspection of live Hyprland desktop dispatch args (compatible with
-    `tiny_dancer/app/desktop_control.py`) is strictly gated behind a 45.0-second
-    hardware interrupt (`i8042` / `xhci_hcd`) + cursor quiet check.
+==============================================================================
+CIS 156 Educational Overview & Game Performance Benchmarking:
+==============================================================================
+In computer graphics and game engine engineering, simply measuring "Average FPS"
+(Frames Per Second) is insufficient to describe whether a game feels smooth.
+A game running at 100 FPS average can still stutter severely if frame intervals
+fluctuate wildly between 5ms and 80ms.
 
-Capabilities:
-  1. Multi-Engine Game Library Discovery & Working-Set Profiler:
-     - Steam/Proton AAA Library (`/mnt/GameDrive/SteamLibrary/steamapps/common`)
-     - Local SSD Steam Library (`~/.local/share/Steam/steamapps/common`)
-     - Custom Unreal Engine 5.8.3 & Mod Suites (`/mnt/GameDrive/wyldgms`, `~/pg/wyldgms`)
-     - Console/Handheld Emulators (`/mnt/GameDrive/wii_gc_games`, `/mnt/GameDrive/harddrive`)
-     - Native HTML5/Canvas & Python Games (`~/pg/baby_game`, `~/pg/OSRS`, `~/pg/Ult_Gaming`)
-  2. Offscreen Framebuffer Renderer + Real OCR HUD Extraction:
-     - Renders an 8-bit grayscale PNG HUD banner in pure Python (`zlib` + `struct`)
-       and invokes `/usr/bin/tesseract` (with deterministic glyph-hash fallback)
-       plus macOS `scripts/receipt_ocr.js` compatibility check.
-  3. Local LLM (`127.0.0.1:18190`) + Fast Heuristic Action Controller:
-     - Queries the local GGUF model on port 18190 (or deterministic low-latency
-       tactical policy fallback) to choose interactive actions (`KEY_PRESS`,
-       `MOUSE_CLICK`, `MOVE`, `COMBO`) from OCR HUD text and game state.
-  4. Real Frame-Time, 1% Low FPS, and AI Smoothness Rating (`0–100`, Grade `S/A/B/C`):
-     - Benchmarks Baseline (Ungoverned: CPU/VRAM contention + cold page fault stalls)
-       vs. HOWITZER-014 Governed (`live_vram_ram_governor.py` P-core `0-11` / E-core `12-15`
-       split + cold-page `MADV_PAGEOUT` + `q4_0` KV cache + `POSIX_FADV_WILLNEED` shader prefetch).
+Key Metrics & Concepts Explained:
+1. Frame Pacing & 1% Lows:
+   - Average FPS: Total frames divided by total seconds.
+   - 1% Low FPS: The average framerate of the slowest 1% of frames. This reveals
+     micro-stutters, garbage collection pauses, and shader compilation hitches.
+   - 99th Percentile Frame Time (P99 ms): The frame duration below which 99% of
+     frames fall. Lower and flatter is smoother.
+2. Hermetic Offscreen Virtualization (`SDL_VIDEODRIVER=dummy`):
+   - By setting the SDL video driver to dummy, game rendering loops execute in
+     system RAM without opening physical windows or interacting with the display
+     server. This guarantees zero interference with the developer's desktop.
+3. Optical Character Recognition (OCR) Telemetry:
+   - Evaluates game HUD elements by synthesizing PNG framebuffers in-memory
+     and extracting text tokens via Tesseract or deterministic bitmap decoding.
+4. AI Smoothness Rating:
+   - Computes an aggregate score from 0 to 100 with letter grades (S, A, B, C)
+     weighting average framerate, 1% low stability, frame-time variance, and VRAM headroom.
 
 Passphrase: the answer is 146.
 """

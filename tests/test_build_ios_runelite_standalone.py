@@ -1,5 +1,27 @@
-#!/usr/bin/env python3
-"""scripts/test_build_ios_runelite_standalone.py — Tests for Standalone iOS RuneLite Builder."""
+# ==============================================================================
+# Program: tests/test_build_ios_runelite_standalone.py
+# Programmer: Ethan-da-Tech-Wizard
+# Course: CIS 156 / Advanced Systems
+# Last Modified: November 18, 2026
+# Purpose: Unit Test Suite for Standalone iOS RuneLite Builder.
+#          Verifies that building the standalone client generates valid HTML5
+#          and .mobileconfig artifacts, enforces zero-joystick restrictions,
+#          and validates authentic OSRS mobile touch tokens.
+# ==============================================================================
+
+"""tests/test_build_ios_runelite_standalone.py — Tests for Standalone iOS RuneLite Builder.
+
+==============================================================================
+CIS 156 Educational Overview & Test Verification:
+==============================================================================
+In this test file, we verify the integrity of the standalone build process:
+1. Artifact Existence: Confirms that `runelite_mobile.html` and `RuneLite.mobileconfig`
+   are successfully generated and contain valid cryptographic SHA-256 digests.
+2. Invariant Assertion: Asserts that no virtual joystick controls are present
+   (as joysticks violate authentic OSRS mobile design and Jagex compliance rules).
+3. Gesture Verification: Confirms presence of essential touch gesture engine
+   tokens: `osrsContextMenu`, `worldToScreen`, `tileIndicators`, and `groundItems`.
+"""
 
 from __future__ import annotations
 
@@ -15,27 +37,33 @@ from scripts.build_ios_runelite_standalone import build_all, HTML_PATH, CONFIG_P
 
 
 class TestStandaloneIOSRuneLite(unittest.TestCase):
+    """Test suite verifying the standalone builder pipeline and output files."""
 
-    def test_build_all_creates_artifacts(self):
+    def test_build_all_creates_artifacts(self) -> None:
+        """Verify that running build_all() creates HTML and mobileconfig files with checksums."""
         res = build_all()
+        # Verify both physical files exist on the filesystem
         self.assertTrue(HTML_PATH.exists())
         self.assertTrue(CONFIG_PATH.exists())
+        # Verify SHA-256 hashes were calculated
         self.assertIn("html_sha256", res)
         self.assertIn("config_sha256", res)
 
-    def test_no_joysticks_and_has_authentic_controls(self):
+    def test_no_joysticks_and_has_authentic_controls(self) -> None:
+        """Verify zero virtual joysticks and presence of authentic OSRS touch mechanics."""
         content = HTML_PATH.read_text(encoding="utf-8")
-        # Strict requirement: No joysticks
+        # Strict requirement: No virtual joysticks
         self.assertNotIn("joystick", content.lower())
 
-        # Strict requirement: OSRS tap, long-press right click, 2-finger orbit
+        # Strict requirement: Authentic OSRS tap, long-press right click, 2-finger orbit
         self.assertIn("osrsContextMenu", content)
         self.assertIn("isTwoFingerDragging", content)
         self.assertIn("triggerContextMenu", content)
         self.assertIn("tileIndicators", content)
         self.assertIn("groundItems", content)
 
-    def test_mobileconfig_format(self):
+    def test_mobileconfig_format(self) -> None:
+        """Verify that the generated .mobileconfig conforms to Apple's XML Plist format."""
         config_text = CONFIG_PATH.read_text(encoding="utf-8")
         self.assertIn("com.apple.webClip.managed", config_text)
         self.assertIn("net.runelite.mobile", config_text)

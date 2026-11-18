@@ -1,27 +1,46 @@
 #!/usr/bin/env python3
+# ==============================================================================
+# Program: neural_harness/live_vram_ram_governor.py
+# Programmer: Ethan-da-Tech-Wizard
+# Course: CIS 156 / Advanced Systems
+# Last Modified: November 18, 2026
+# Purpose: HOWITZER Live VRAM & RAM Working-Set Governor.
+#          Non-destructively compresses active RAM and VRAM footprints of running
+#          AI models, background daemons, and workspace applications down to their
+#          strict active working set while keeping 100% of processes alive and
+#          responsive during heavy 3D gaming or rendering workloads.
+# ==============================================================================
+
 """
 HOWITZER Live VRAM & RAM Working-Set Governor (`live_vram_ram_governor.py`).
 
-Non-destructively compresses active RAM and VRAM footprints of running AI models,
-background daemons, and workspace applications down to their strict active working
-set while keeping 100% of processes alive and responsive during heavy 3D gaming
-or rendering workloads.
+==============================================================================
+CIS 156 Educational Overview & Advanced Operating Systems Architecture:
+==============================================================================
+In modern operating systems, memory management is divided into virtual memory,
+physical resident set size (RSS), proportional set size (PSS), and GPU video
+memory (VRAM).
 
-Key Primitives:
+When running heavy workloads (such as 3D game engines, neural inference, or
+RuneLite client instances simultaneously), unmanaged processes hoard memory
+pages that have not been accessed in minutes or hours.
+
+Key Primitives & Computer Science Concepts:
 1. Linux `/proc/<pid>/smaps_rollup` exact working-set calculation:
-   - `rss_kb`, `pss_kb`, `referenced_kb` (active working set)
-   - `cold_reclaimable_kb = max(0, rss_kb - referenced_kb)`
-   - `file_reclaimable_kb = private_clean_kb + shared_clean_kb`
+   - `rss_kb`: Total physical RAM pages mapped into process address space.
+   - `pss_kb`: Proportional share of shared library memory accounting.
+   - `referenced_kb`: Pages accessed since the last page-table scan (active working set).
+   - `cold_reclaimable_kb = max(0, rss_kb - referenced_kb)`: Dormant memory eligible for pageout.
+   - `file_reclaimable_kb = private_clean_kb + shared_clean_kb`: Disk-backed pages droppable without swap.
 2. Linux `process_madvise` (syscall 440) + `pidfd_open` (syscall 434):
-   - Proactive `MADV_COLD` (20) and `MADV_PAGEOUT` (21) on cold VMA ranges.
+   - Proactive `MADV_COLD` (20) and `MADV_PAGEOUT` (21) hints to the Linux kernel.
 3. In-process allocator compaction:
    - `gc.collect()` + `glibc` `malloc_trim(0)` (Linux) or `malloc_zone_pressure_relief` (macOS).
-4. Intel 12th Gen Alder Lake (`i7-12650H`) Hybrid CPU Topology Steering:
-   - Isolates P-cores (`0-11`) for active games & Wayland compositor (`Hyprland`).
-   - Pins background AI (`llama-server`) and work apps to E-cores (`12-15`) + `SCHED_IDLE` / `nice`.
-5. GPU VRAM Dynamic Working-Set Compression (`nvidia-smi` + `llama-server`):
-   - Live VRAM telemetry + compute PID detection.
-   - Zero-downtime `/slots/{id}?action=erase` KV-cache eviction & `-fa -ctk q4_0 -ctv q4_0` plan.
+4. Hybrid CPU Topology Steering (Intel P-cores vs. E-cores):
+   - Isolates Performance cores (P-cores) for high-FPS gameplay and Wayland compositor.
+   - Pins background AI inference and worker daemons to Efficiency cores (E-cores).
+5. GPU VRAM Dynamic Working-Set Compression:
+   - Zero-downtime KV-cache eviction via `/slots/{id}?action=erase` to reclaim VRAM headroom.
 """
 
 from __future__ import annotations

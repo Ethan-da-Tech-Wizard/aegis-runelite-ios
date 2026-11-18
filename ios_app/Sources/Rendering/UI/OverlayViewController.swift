@@ -1,10 +1,38 @@
+// ==============================================================================
+// Program: OverlayViewController.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Primary UIViewController for RuneLite Mobile iOS.
+//          Hosts the transparent MTKView with 120Hz ProMotion support, floating
+//          HUD controls (Settings gear, rotating North compass), pinch-to-zoom
+//          recognizer, click animation markers (red X / yellow X), and 350ms
+//          long-press right-click context menu presentation.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & Mobile View Controller Architecture:
+// ==============================================================================
+// In UIKit application architecture (CIS 156), a `UIViewController` coordinates
+// user input events, subviews, hardware rendering layers, and modal transitions.
 //
-//  OverlayViewController.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Key Subsystems in this View Controller:
+// 1. Transparent Metal Layer (`MTKView`):
+//    The Metal view is layered over the screen with `isOpaque = false` and
+//    `isUserInteractionEnabled = false`. This allows touches to pass directly
+//    through to the view controller while the GPU draws overlays on top at up
+//    to 120 FPS on ProMotion hardware.
+// 2. Click Marker Animations:
+//    - Red X: Action on an interactable entity (monster attack, tree chop, door open).
+//    - Yellow X: Pure tile ground movement tap.
+//    - Animates a rotating, expanding square that fades out over 350ms.
+// 3. Rotating Compass:
+//    The North compass button rotates dynamically according to camera yaw:
+//    `angle = (yaw / 2048.0) * 2 * pi`. Tapping it resets camera to North.
+// 4. Jagex 1:1 Compliance Verification:
+//    Every touch event entering `touchesBegan` is passed to
+//    `JagexComplianceEngine.shared.validateTouchEvent(touch)`.
+// ==============================================================================
 
 import UIKit
 import MetalKit
@@ -24,15 +52,18 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         view.backgroundColor = .black
         view.isMultipleTouchEnabled = true
 
+        // Initialize user interface and hardware rendering subsystems
         setupMetalOverlay()
         setupFloatingControls()
         setupPinchGesture()
         registerDefaultPlugins()
         startSimulatedTelemetry()
 
+        // Bind touch and camera delegate
         TouchAndCameraPipeline.shared.delegate = self
     }
 
+    /// Configures the transparent MTKView for ProMotion 120Hz/60Hz rendering.
     private func setupMetalOverlay() {
         guard let device = MetalOverlayRenderer.shared.device else {
             print("❌ [OverlayViewController] Metal device unavailable")
@@ -57,6 +88,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         view.addSubview(metalView)
     }
 
+    /// Sets up floating circular buttons for settings and camera compass.
     private func setupFloatingControls() {
         let safeArea = view.safeAreaInsets
 
@@ -81,6 +113,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         view.addSubview(compassButton)
     }
 
+    /// Attaches 2-finger pinch gesture recognizer for camera zooming.
     private func setupPinchGesture() {
         let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         view.addGestureRecognizer(pinch)
@@ -93,6 +126,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         }
     }
 
+    /// Registers the default suite of native mobile plugins.
     private func registerDefaultPlugins() {
         let pm = PluginManager.shared
         pm.register(plugin: TileIndicatorsPlugin())
@@ -102,8 +136,8 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         pm.register(plugin: MenuEntrySwapperPlugin())
     }
 
+    /// Starts 600ms tick timer driving the OSRS simulation loop.
     private func startSimulatedTelemetry() {
-        // Runs periodic tick event every 600ms (standard OSRS server tick)
         simulatedTickTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { _ in
             GameState.shared.onTick()
             // Dispatch tick to sandboxed plugins
@@ -111,12 +145,14 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         }
     }
 
+    /// Opens the SwiftUI Plugin Settings modal view.
     @objc private func openSettings() {
         let settingsView = PluginSettingsView()
         let hostingController = UIHostingController(rootView: settingsView)
         present(hostingController, animated: true)
     }
 
+    /// Resets camera orientation to North.
     @objc private func resetCameraNorth() {
         TouchAndCameraPipeline.shared.resetCameraToNorth()
     }
@@ -147,7 +183,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         super.touchesCancelled(touches, with: event)
     }
 
-    // MARK: - TouchAndCameraDelegate
+    // MARK: - TouchAndCameraDelegate Implementations
 
     public func didTriggerClickMarker(at point: CGPoint, type: ClickMarkerType) {
         showClickAnimation(at: point, color: type == .redX ? .red : .yellow)
@@ -158,13 +194,14 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
     }
 
     public func didUpdateCamera(yaw: Int, pitch: Int, zoom: Int) {
-        // Update compass icon rotation
+        // Update compass icon rotation based on camera yaw
         let angleRadians = Double(yaw) / 2048.0 * (2.0 * .pi)
         compassButton.transform = CGAffineTransform(rotationAngle: CGFloat(-angleRadians))
     }
 
-    // MARK: - Visual Click Markers & Context Menu
+    // MARK: - Visual Click Markers & Context Menu Presentation
 
+    /// Renders the classic OSRS crosshair click marker animation.
     private func showClickAnimation(at point: CGPoint, color: UIColor) {
         let marker = UIView(frame: CGRect(x: point.x - 12, y: point.y - 12, width: 24, height: 24))
         marker.layer.borderColor = color.cgColor
@@ -182,6 +219,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         }
     }
 
+    /// Presents authentic OSRS right-click context menu at finger location.
     private func showContextMenu(at point: CGPoint, worldPoint: WorldPoint) {
         dismissContextMenu()
 
@@ -222,6 +260,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         activeContextMenu = menu
     }
 
+    /// Dismisses any active context menu on screen.
     @objc private func dismissContextMenu() {
         activeContextMenu?.removeFromSuperview()
         activeContextMenu = nil

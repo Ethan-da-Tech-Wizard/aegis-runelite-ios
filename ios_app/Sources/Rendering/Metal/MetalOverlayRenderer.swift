@@ -1,26 +1,52 @@
+// ==============================================================================
+// Program: MetalOverlayRenderer.swift
+// Programmer: Ethan-da-Tech-Wizard
+// Course: CIS 156 / Advanced Systems
+// Last Modified: November 18, 2026
+// Purpose: Hardware-Accelerated Apple Metal 2D/3D Overlay Renderer.
+//          Renders high-performance, low-latency visual HUD indicators, ground tile
+//          quads, and contrast bounding boxes directly on the GPU at 60/120 FPS
+//          using custom Metal shading language (MSL) pipelines and alpha blending.
+// ==============================================================================
+
+// ==============================================================================
+// CIS 156 Educational Overview & GPU Graphics Pipelines:
+// ==============================================================================
+// In computer systems architecture (CIS 156 / Computer Graphics), rendering
+// graphics on the CPU (software rendering) is slow and battery-intensive.
+// Modern operating systems utilize dedicated Graphics Processing Units (GPUs).
 //
-//  MetalOverlayRenderer.swift
-//  RuneLiteMobile
-//
-//  Created for iOS Standalone RuneLite Client Architecture.
-//  Copyright © 2026 TWU LLC. All rights reserved.
-//
+// Apple Metal Graphics Pipeline:
+// 1. MTLDevice: Represents the physical Apple Silicon GPU chip (e.g., A16/A17/M2).
+// 2. MTLCommandQueue: Thread-safe FIFO queue accepting GPU command buffers.
+// 3. MTLRenderPipelineState: Compiled GPU program pairing a vertex shader
+//    (`overlayVertexShader`) and a fragment shader (`overlayFragmentShader`).
+// 4. Alpha Blending Configuration:
+//    - Source Factor: `sourceAlpha`
+//    - Destination Factor: `oneMinusSourceAlpha`
+//    - Resulting Color: `(Source * SourceAlpha) + (Destination * (1 - SourceAlpha))`
+//    This mathematical blending formula allows translucent tile highlights and
+//    HUD bounding boxes to blend smoothly over the underlying 3D game world.
+// ==============================================================================
 
 import Foundation
 import MetalKit
 import simd
 
+/// 2D Vertex structure passed to the GPU vertex shader.
 struct OverlayVertex {
-    var position: SIMD2<Float>
-    var color: SIMD4<Float>
+    var position: SIMD2<Float>  // Pixel coordinate (X, Y)
+    var color: SIMD4<Float>     // Normalized RGBA color (0.0 to 1.0)
 }
 
+/// Uniform buffer containing current viewport dimensions.
 struct ViewportUniforms {
-    var viewportSize: SIMD2<Float>
+    var viewportSize: SIMD2<Float>  // Viewport width and height in points
 }
 
-/// Hardware-accelerated Metal overlay renderer operating at 60/120 FPS
+/// Hardware-accelerated Metal overlay renderer operating at 60/120 FPS.
 public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
+    /// Shared singleton instance.
     public static let shared = MetalOverlayRenderer()
 
     public private(set) var device: MTLDevice?
@@ -33,15 +59,19 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
         setupMetal()
     }
 
+    /// Initializes GPU hardware device, command queue, and compiles the render pipeline.
     private func setupMetal() {
+        // Step 1: Obtain reference to the default system Metal GPU device
         guard let defaultDevice = MTLCreateSystemDefaultDevice() else {
             print("❌ [MetalOverlayRenderer] Failed to initialize default Metal device.")
             return
         }
         self.device = defaultDevice
+        // Step 2: Create command queue for submitting GPU render jobs
         self.commandQueue = defaultDevice.makeCommandQueue()
 
         do {
+            // Step 3: Access precompiled default Metal shading library (Shaders.metal)
             guard let defaultLibrary = defaultDevice.makeDefaultLibrary() else {
                 print("⚠️ [MetalOverlayRenderer] Default Metal library not found, building runtime shaders.")
                 return
@@ -49,12 +79,13 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
             let vertexFunction = defaultLibrary.makeFunction(name: "overlayVertexShader")
             let fragmentFunction = defaultLibrary.makeFunction(name: "overlayFragmentShader")
 
+            // Step 4: Configure pipeline descriptor with shaders and pixel format
             let pipelineDescriptor = MTLRenderPipelineDescriptor()
             pipelineDescriptor.vertexFunction = vertexFunction
             pipelineDescriptor.fragmentFunction = fragmentFunction
             pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
-            // Alpha blending for smooth transparent HUD overlays
+            // Step 5: Configure hardware alpha blending for smooth transparent HUD overlays
             pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
             pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
             pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
@@ -63,18 +94,27 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
             pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
             pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
 
+            // Step 6: Compile the synchronous render pipeline state
             self.pipelineState = try defaultDevice.makeRenderPipelineState(descriptor: pipelineDescriptor)
         } catch {
             print("❌ [MetalOverlayRenderer] Pipeline compilation error: \(error.localizedDescription)")
         }
     }
 
-    // MARK: - MTKViewDelegate
+    // MARK: - MTKViewDelegate Callbacks
 
+    /// Called whenever the drawable size changes (e.g., orientation change or split screen).
+    ///
+    /// - Parameters:
+    ///   - view: The MTKView triggering the update.
+    ///   - size: New drawable size in pixels.
     public func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         GameState.shared.viewportSize = size
     }
 
+    /// Render loop callback invoked by MTKView every display frame (60 or 120 FPS).
+    ///
+    /// - Parameter view: MTKView containing destination CAMetalDrawable.
     public func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
@@ -83,10 +123,11 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
             return
         }
 
-        // Render pass load action is MTLLoadActionClear with alpha 0.0 for transparent HUD
+        // Configure transparent background: alpha = 0.0 clears frame without black opaque wash
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0.0)
 
+        // Allocate command buffer and render command encoder
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             return
@@ -94,11 +135,11 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
 
         renderEncoder.setRenderPipelineState(pipelineState)
 
-        // Viewport uniforms
+        // Pass viewport dimensions uniform buffer to vertex shader at buffer index 1
         var uniforms = ViewportUniforms(viewportSize: SIMD2<Float>(Float(view.bounds.width), Float(view.bounds.height)))
         renderEncoder.setVertexBytes(&uniforms, length: MemoryLayout<ViewportUniforms>.stride, index: 1)
 
-        // Collect plugin draw commands
+        // Collect all draw commands from registered plugins
         let context = MetalRenderContext(
             viewportSize: view.bounds.size,
             commandBuffer: commandBuffer,
@@ -107,28 +148,31 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
         )
         let commands = PluginManager.shared.collectDrawCommands(context: context)
 
-        // Convert commands to vertex quads
+        // Convert high-level draw commands into hardware GPU triangle vertices
         var vertices: [OverlayVertex] = []
         for command in commands {
             switch command {
             case .polygon(let points, let fillColor, _, _):
+                // A quadrilateral tile is decomposed into 2 triangles: (0, 1, 2) and (0, 2, 3)
                 guard points.count >= 4 else { continue }
                 let col = simdColor(from: fillColor)
-                // Two triangles for quad (0, 1, 2) and (0, 2, 3)
                 let p0 = SIMD2<Float>(Float(points[0].x), Float(points[0].y))
                 let p1 = SIMD2<Float>(Float(points[1].x), Float(points[1].y))
                 let p2 = SIMD2<Float>(Float(points[2].x), Float(points[2].y))
                 let p3 = SIMD2<Float>(Float(points[3].x), Float(points[3].y))
 
+                // Triangle 1
                 vertices.append(OverlayVertex(position: p0, color: col))
                 vertices.append(OverlayVertex(position: p1, color: col))
                 vertices.append(OverlayVertex(position: p2, color: col))
 
+                // Triangle 2
                 vertices.append(OverlayVertex(position: p0, color: col))
                 vertices.append(OverlayVertex(position: p2, color: col))
                 vertices.append(OverlayVertex(position: p3, color: col))
 
             case .boundingBox(let rect, let color, _):
+                // Rectangular bounding box decomposed into 2 triangles
                 let col = simdColor(from: color)
                 let minX = Float(rect.minX)
                 let minY = Float(rect.minY)
@@ -140,20 +184,23 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
                 let p2 = SIMD2<Float>(maxX, maxY)
                 let p3 = SIMD2<Float>(minX, maxY)
 
+                // Triangle 1
                 vertices.append(OverlayVertex(position: p0, color: col))
                 vertices.append(OverlayVertex(position: p1, color: col))
                 vertices.append(OverlayVertex(position: p2, color: col))
 
+                // Triangle 2
                 vertices.append(OverlayVertex(position: p0, color: col))
                 vertices.append(OverlayVertex(position: p2, color: col))
                 vertices.append(OverlayVertex(position: p3, color: col))
 
             case .text, .icon:
-                // Handled in CoreAnimation / CATextLayer overlay or font texture atlas
+                // Text layers rendered via CoreAnimation overlay
                 break
             }
         }
 
+        // If vertices exist, upload to GPU shared memory buffer and issue draw call
         if !vertices.isEmpty, let device = self.device {
             let bufferSize = vertices.count * MemoryLayout<OverlayVertex>.stride
             let vertexBuffer = device.makeBuffer(bytes: vertices, length: bufferSize, options: .storageModeShared)
@@ -161,11 +208,13 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
             renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertices.count)
         }
 
+        // Finalize rendering and present drawable to display
         renderEncoder.endEncoding()
         commandBuffer.present(drawable)
         commandBuffer.commit()
     }
 
+    /// Converts standard CoreGraphics CGColor into SIMD4<Float> format required by Metal.
     private func simdColor(from cgColor: CGColor) -> SIMD4<Float> {
         guard let components = cgColor.components, components.count >= 3 else {
             return SIMD4<Float>(1, 1, 1, 1)
