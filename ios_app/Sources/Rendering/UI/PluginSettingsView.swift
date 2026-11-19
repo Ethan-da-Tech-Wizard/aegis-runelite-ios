@@ -31,9 +31,14 @@ import SwiftUI
 /// SwiftUI configuration panel for managing RuneLite plugins & Jagex compliance status.
 public struct PluginSettingsView: View {
     // Observed singletons: the view refreshes when plugins or auth state change.
+    // @ObservedObject (not @StateObject) because the singletons outlive this view; the view only subscribes to their changes and never owns them.
     @ObservedObject var pluginManager = PluginManager.shared
     @ObservedObject var authManager = JagexOAuthManager.shared
+
+    // Local UI state only: it drives the .sheet at the bottom and is not worth persisting.
     @State private var isShowingPluginHub: Bool = false
+
+    // Used by the Done button to dismiss this modal; the older presentationMode API is used for compatibility with earlier iOS versions.
     @Environment(\.presentationMode) var presentationMode
 
     public init() {}
@@ -43,6 +48,7 @@ public struct PluginSettingsView: View {
             List {
                 // Section 1: Jagex Account & Security Status
                 Section(header: Text("Jagex Account Authentication")) {
+                    // Two mutually exclusive states: signed in (show character and Disconnect) or signed out (show the OAuth login button).
                     if authManager.isAuthenticated {
                         HStack {
                             Image(systemName: "checkmark.shield.fill")
@@ -69,6 +75,7 @@ public struct PluginSettingsView: View {
                                 .foregroundColor(.secondary)
 
                             Button(action: {
+                                // The login runs in the system web authentication session (the OAuth PKCE flow), so the app never handles the Jagex password. The result is only printed; the UI updates through authManager's published state.
                                 authManager.startLogin { result in
                                     switch result {
                                     case .success:
@@ -86,12 +93,15 @@ public struct PluginSettingsView: View {
                                 .padding(.vertical, 8)
                             }
                             .buttonStyle(.borderedProminent)
+
+                            // Prevents a second OAuth session from being started while one is already open.
                             .disabled(authManager.isAuthenticating)
                         }
                     }
                 }
 
                 // Section 2: Jagex Compliance & Anti-Detection Badge
+                // This section is informational text, not a live check; the actual rules are enforced in JagexComplianceEngine.
                 Section(header: Text("Compliance & Anti-Detection Status")) {
                     HStack {
                         Image(systemName: "shield.lefthalf.filled.badge.checkmark")
@@ -136,6 +146,7 @@ public struct PluginSettingsView: View {
                 // Section 4: Bundled Native Plugin Toggles
                 Section(header: Text("Bundled Core Plugins")) {
                     // Each toggle writes through PluginManager so the choice is persisted and startUp/shutDown run.
+                    // id: \.id uses the plugin's stable identifier so toggling one row does not rebuild the whole list.
                     ForEach(pluginManager.registeredPlugins, id: \.id) { plugin in
                         Toggle(isOn: Binding(
                             get: { plugin.isEnabled },
@@ -156,6 +167,8 @@ public struct PluginSettingsView: View {
                 }
             }
             .navigationTitle("RuneLite Mobile")
+
+            // The settings screen is presented as a modal, so it needs its own explicit way out.
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
             })

@@ -31,12 +31,16 @@ import SwiftUI
 /// Authentic in-app RuneLite Plugin Hub browser for iOS.
 /// Allows players to search, install, toggle, and manage official community plugins.
 public struct PluginHubView: View {
+    // Shared client singleton; installs, removals and toggles made anywhere in the app refresh this list automatically.
     @ObservedObject var hubClient = PluginHubClient.shared
+
+    // searchText and selectedFilter are local view state: they are not saved, so the browser opens unfiltered each time.
     @State private var searchText: String = ""
     @State private var selectedFilter: String = "All"
     @Environment(\.presentationMode) var presentationMode
 
     // Filter chips; 'All' plus tag names used in the sample catalog.
+    // Must match the tag strings in the catalog entries (HubPluginManifest.tags), because the filter compares them exactly and case-sensitively.
     private let categories = ["All", "pvm", "skilling", "utility", "quests", "combat"]
 
     public init() {}
@@ -45,6 +49,8 @@ public struct PluginHubView: View {
     // Case-insensitive search over name/summary/author combined (AND) with the selected tag chip.
     public var filteredPlugins: [HubPluginManifest] {
         hubClient.availablePlugins.filter { plugin in
+
+            // The two predicates are combined with AND, so a search only looks inside the selected category.
             let matchesCategory = selectedFilter == "All" || plugin.tags.contains(selectedFilter)
             let matchesSearch = searchText.isEmpty ||
                 plugin.displayName.localizedCaseInsensitiveContains(searchText) ||
@@ -58,6 +64,7 @@ public struct PluginHubView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // Category Filter Pills (Horizontal Scroll Bar)
+                // Horizontal scroll so six pills fit on a narrow phone without wrapping.
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { category in
@@ -80,6 +87,7 @@ public struct PluginHubView: View {
                 Divider()
 
                 // Filtered Plugin List
+                // The header count uses filteredPlugins.count so the user sees how many results the current search and category produce.
                 List {
                     Section(header: Text("Official RuneLite Plugin Hub (\(filteredPlugins.count) Available)")) {
                         ForEach(filteredPlugins) { plugin in
@@ -94,6 +102,7 @@ public struct PluginHubView: View {
                                     }
                                     Spacer()
 
+                                    // An installed plugin shows an enable switch and a trash button; a not-installed one shows Install. The two states never appear together.
                                     if plugin.isInstalled {
                                         HStack(spacing: 8) {
                                             // Toggle plugin enabled / disabled
@@ -154,6 +163,8 @@ public struct PluginHubView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+
+                // Native search bar (iOS 15 and later); it only edits searchText, and filteredPlugins does the work.
                 .searchable(text: $searchText, prompt: "Search Plugin Hub...")
             }
             .navigationTitle("Plugin Hub")
