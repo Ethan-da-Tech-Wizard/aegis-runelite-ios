@@ -63,6 +63,7 @@
 
     /* OSRS Top Bar & Minimap */
     /* HUD overlay containers use pointer-events rules so taps on empty areas fall through to the world (see touchstart's closest() check). */
+    /* Layering (z-index): canvas 1, HUD bars and panels 10, XP drops 15, click marker 50, context menu 100, plugin hub modal 200. Env safe-area insets keep the HUD out from under the iPhone notch and home bar; the second value is the fallback on browsers without them. */
     #topBar {
       position: absolute;
       top: env(safe-area-inset-top, 8px);
@@ -75,6 +76,7 @@
       z-index: 10;
     }
 
+    /* Children of #topBar re-enable pointer events (the bar itself ignores them), so only the visible HUD pieces catch taps and the rest of the strip passes taps to the world. */
     .hud-element {
       pointer-events: auto;
     }
@@ -86,6 +88,7 @@
       padding: 4px;
     }
 
+    /* 36px circles keep six skill globes within a phone's width; radial gradient fakes a glassy highlight offset to the upper left (35% 35%). */
     .xp-globe {
       width: 36px;
       height: 36px;
@@ -121,6 +124,7 @@
       gap: 6px;
     }
 
+    /* Fixed 110px circle with overflow hidden so the square minimap canvas is clipped round, matching the OSRS minimap. */
     #minimapContainer {
       width: 110px;
       height: 110px;
@@ -137,6 +141,7 @@
       height: 100%;
     }
 
+    /* Positioned over the minimap corner; transform-origin centre lets JS rotate it with the camera yaw. */
     #compass {
       position: absolute;
       top: 6px;
@@ -156,6 +161,7 @@
     }
 
     /* Orbs: HP, Prayer, Run */
+    /* Negative top margin tucks the orbs up against the minimap's lower edge to save vertical space on small screens. */
     .orbs-row {
       display: flex;
       gap: 6px;
@@ -180,12 +186,14 @@
       cursor: pointer;
     }
 
+    /* Border colour identifies the orb (green = hitpoints, blue = prayer, orange = run); the run orb turns yellow-bordered when toggled on. */
     .osrs-orb.hp { border-color: #2e7d32; }
     .osrs-orb.prayer { border-color: #0288d1; }
     .osrs-orb.run { border-color: #f57f17; }
     .osrs-orb.run.active { background: #5d4037; border-color: #ffeb3b; }
 
     /* Side Stones (Bottom Right on Mobile) */
+    /* Bottom-right column: the active panel sits above the tab bar. pointer-events none on the container and auto on its children keeps the empty space click-through. */
     #sideStonesContainer {
       position: absolute;
       bottom: env(safe-area-inset-bottom, 8px);
@@ -215,6 +223,7 @@
       display: flex;
     }
 
+    /* Gold title strip separates each panel's heading from its grid. */
     .panel-header {
       background: #241e19;
       padding: 6px 10px;
@@ -237,6 +246,7 @@
       background: #1c1815;
     }
 
+    /* Square-ish slot with a quantity label positioned absolutely at its corner (see .qty). */
     .inv-slot {
       aspect-ratio: 1;
       background: rgba(46, 40, 36, 0.7);
@@ -261,6 +271,7 @@
     }
 
     /* Prayers Grid */
+    /* Grid of tappable prayer tiles; the .active tile is highlighted by .prayer-slot.active, toggled by togglePrayer(). */
     .prayers-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -301,6 +312,7 @@
     }
 
     /* RuneLite Plugins Panel */
+    /* Scrolls inside the panel so a long plugin list never grows the panel past the screen. */
     .plugins-list {
       padding: 8px;
       display: flex;
@@ -326,6 +338,7 @@
       color: #ffffff;
     }
 
+    /* Standard hidden-checkbox toggle: the real <input> is invisible and .slider draws the track, which keeps the control accessible to taps and keyboards. */
     .switch {
       position: relative;
       display: inline-block;
@@ -401,6 +414,8 @@
     #pluginHubModal.visible {
       display: flex;
     }
+
+    /* Header of the simulated plugin hub modal: title on the left, close button on the right. */
     .hub-header {
       padding: 12px 16px;
       background: #1c1815;
@@ -441,6 +456,8 @@
       font-size: 12px;
       outline: none;
     }
+
+    /* Horizontal row of filter pills; the active pill is styled by .hub-cat-pill.active and its value is stored in currentHubCategory in the script. */
     .hub-categories {
       padding: 6px 16px;
       display: flex;
@@ -473,6 +490,8 @@
       flex-direction: column;
       gap: 8px;
     }
+
+    /* One catalog entry: header (title, author), description, and footer with version and the install button. */
     .hub-card {
       background: #221c18;
       border: 1px solid #4a3e2e;
@@ -517,6 +536,8 @@
       font-weight: 700;
       cursor: pointer;
     }
+
+    /* Installed state is only a visual and a flag in the demo catalog; no plugin code is ever downloaded or run. */
     .hub-install-btn.installed {
       background: #4a3e2e;
       color: #7ee787;
@@ -533,6 +554,7 @@
       border-radius: 6px;
     }
 
+    /* Tab buttons are one icon wide; the .active tab matches whichever stone panel is visible. */
     .stone-tab {
       width: 36px;
       height: 32px;
@@ -578,6 +600,7 @@
       border-bottom: 1px solid #4a3e2e;
     }
 
+    /* Rows of the long-press menu; :active gives touch feedback because there is no hover on a phone. */
     .menu-option {
       padding: 6px 10px;
       font-size: 11px;
@@ -605,6 +628,7 @@
     }
 
     /* Status Bar Overlays (Left Screen Edge) */
+    /* Vertical HP and prayer bars along the left edge; shown or hidden by the statusBars plugin toggle. */
     #statusBars {
       position: absolute;
       top: 50%;
@@ -648,6 +672,7 @@
     }
 
     /* Floating XP Drops */
+    /* column-reverse stacks the newest drop at the bottom so older drops float up above it; z-index 15 keeps them over the panels. */
     .xp-drop-container {
       position: absolute;
       top: 60px;
@@ -676,6 +701,7 @@
     }
 
     /* Click Crosshair Animation */
+    /* translate(-50%, -50%) centres the 20px marker on the tap point, so JS can place it with raw clientX/clientY. */
     .click-crosshair {
       position: absolute;
       width: 20px;
