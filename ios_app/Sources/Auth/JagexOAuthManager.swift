@@ -238,9 +238,8 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
 
             do {
                 // Decode JSON token response
-                // COMPILE RISK: Foundation's JSONDecoder.decode takes 'from:' (decode(_:from:)), not 'data:'. This line is expected to fail to build
-                // when the full project is compiled with Xcode; syntax-only parsing does not detect it.
-                let tokenResponse = try JSONDecoder().decode(JagexTokenResponse.self, data: data)
+                // Foundation's API is decode(_:from:); the label 'data:' does not exist and was a compile error.
+                let tokenResponse = try JSONDecoder().decode(JagexTokenResponse.self, from: data)
 
                 // Securely store refresh token in iOS Keychain
                 // Only the refresh token is persisted; access/game tokens stay in memory with the returned struct. The save result is ignored.
