@@ -65,7 +65,7 @@ except ImportError:
 
 
 # This is a demo/simulation backend: it does not connect to a real RuneLite or OSRS client. The overlays it
-# # emits are fixed sample shapes at constant coordinates, and touches are only echoed back, not injected anywhere.
+# emits are fixed sample shapes at constant coordinates, and touches are only echoed back, not injected anywhere.
 class HeadlessRuneLiteDaemon:
     """Manages the backend RuneLite plugin loop and generates secure overlay streams.
 

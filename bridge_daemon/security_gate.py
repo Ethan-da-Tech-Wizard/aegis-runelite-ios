@@ -39,8 +39,8 @@ from typing import Any, Dict, List, Set
 # Set of forbidden case-insensitive substrings indicating authentication secrets.
 # Using a Python set provides O(1) average lookup time when checking membership.
 # NOTE: matching is by substring, so it is deliberately broad and can reject harmless keys that merely
-# # contain these letters (e.g. 'pin' inside 'mapping', 'auth' inside 'author', 'hash' inside 'hashtag').
-# # Over-rejecting is the accepted trade-off of a fail-closed gate.
+# contain these letters (e.g. 'pin' inside 'mapping', 'auth' inside 'author', 'hash' inside 'hashtag').
+# Over-rejecting is the accepted trade-off of a fail-closed gate.
 FORBIDDEN_KEYS: Set[str] = {
     "password", "pass", "pwd", "token", "session", "cookie", "auth",
     "pin", "bank_pin", "secret", "private_key", "credential", "bearer",
@@ -50,7 +50,7 @@ FORBIDDEN_KEYS: Set[str] = {
 # Regular expression pattern to detect potential base64/hex cryptographic hashes or secrets.
 # Matches 32 or more consecutive alphanumeric/base64 characters without whitespace.
 # The regex itself matches 32+ characters, but sanitize_outbound_dict only applies it to strings longer
-# # than 64 characters; shorter token-like strings pass.
+# than 64 characters; shorter token-like strings pass.
 SUSPICIOUS_VAL_PATTERN: re.Pattern = re.compile(r"^[A-Za-z0-9+/=_-]{32,}$")
 
 

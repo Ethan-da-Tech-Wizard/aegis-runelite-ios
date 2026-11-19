@@ -45,7 +45,7 @@ SCRIPTS_DIR = os.path.join(ROOT_DIR, "scripts")
 
 
 # These are source-text assertions (substring checks on Swift/Markdown files). They confirm the policy is written
-# # down and wired in, but do not execute the Swift code.
+# down and wired in, but do not execute the Swift code.
 class TestJagexComplianceSpecification(unittest.TestCase):
     """Test suite ensuring absolute adherence to Jagex's Third-Party Client Rules."""
 

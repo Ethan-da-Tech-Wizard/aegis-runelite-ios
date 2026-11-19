@@ -78,7 +78,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 # Enforce offscreen dummy video/audio drivers so SDL/Pygame never open a physical X11/Wayland window
 # Force SDL's headless 'dummy' drivers before anything could import pygame. setdefault lets a caller
-# # override, but the default guarantees no window, cursor grab or audio device is ever opened.
+# override, but the default guarantees no window, cursor grab or audio device is ever opened.
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
@@ -93,14 +93,14 @@ SIMULATION_DISCLOSURE = (
 )
 MODULE_DIR = Path(__file__).resolve().parent
 # Put the repo root and this directory on sys.path so the sibling-module imports below work
-# # both as a package (neural_harness.x) and when run directly as a script.
+# both as a package (neural_harness.x) and when run directly as a script.
 for p in (str(REPO_ROOT), str(MODULE_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 try:
     # Import the governor under several layouts (package, legacy scripts/ dir, flat module) so older
-    # # checkouts keep working.
+    # checkouts keep working.
     from neural_harness import live_vram_ram_governor as gov
 except ImportError:
     try:
@@ -110,19 +110,19 @@ except ImportError:
 
 try:
     # The HID idle probe is the safety gate for any physical input. If no implementation can be
-    # # imported we fall back to a stub (below) that reports 999s idle.
+    # imported we fall back to a stub (below) that reports 999s idle.
     from neural_harness.hid_safety import probe_linux_hardware_hid_idle_seconds
 except ImportError:
     try:
         from scripts.prompt_injector import probe_linux_hardware_hid_idle_seconds
     except ImportError:
         # Last-resort stub: reports a very large idle time. Only harmless because the harness defaults to
-        # # offscreen mode, where the idle value is never consulted for dispatch.
+        # offscreen mode, where the idle value is never consulted for dispatch.
         def probe_linux_hardware_hid_idle_seconds() -> float:
             return 999.0
 
 # Filesystem locations of the author's game libraries (Linux layout). Every use checks .exists(),
-# # so on other machines (e.g. macOS) the catalog falls back to built-in profiles.
+# so on other machines (e.g. macOS) the catalog falls back to built-in profiles.
 HOME_DIR = Path.home()
 PG_ROOT = HOME_DIR / "pg"
 LOCAL_STEAM_COMMON = HOME_DIR / ".local" / "share" / "Steam" / "steamapps" / "common"
@@ -148,8 +148,8 @@ MIN_HID_IDLE_SECONDS = 45.0
 
 # 6x7 Bitmap Glyph Table for Offscreen HUD PNG Rendering (Tesseract OCR readable)
 # Minimal 6x7 bitmap font used to draw HUD banners into PNGs without PIL.
-# # Each entry is 7 row bytes; within a byte, bit 5 (0x20) is the leftmost pixel and bit 0 the rightmost.
-# # Only A-Z, 0-9, ':', '-' and space exist, which is why HUD text is sanitised to that set.
+# Each entry is 7 row bytes; within a byte, bit 5 (0x20) is the leftmost pixel and bit 0 the rightmost.
+# Only A-Z, 0-9, ':', '-' and space exist, which is why HUD text is sanitised to that set.
 BITMAP_FONT_6X7: Dict[str, List[int]] = {
     "A": [0x1E, 0x33, 0x33, 0x3F, 0x33, 0x33, 0x33],
     "B": [0x3E, 0x33, 0x33, 0x3E, 0x33, 0x33, 0x3E],
@@ -194,8 +194,8 @@ BITMAP_FONT_6X7: Dict[str, List[int]] = {
 
 # Expected VRAM & RAM working set profiles for discovered games on RTX 3070 Laptop GPU (8192 MiB)
 # Hand-written resource estimates (VRAM/RAM in MiB, target FPS) keyed by game folder name.
-# # These are static estimates, NOT measurements; they feed the catalog's "fits in VRAM" arithmetic.
-# # Sizing assumes an 8192 MiB laptop GPU.
+# These are static estimates, NOT measurements; they feed the catalog's "fits in VRAM" arithmetic.
+# Sizing assumes an 8192 MiB laptop GPU.
 KNOWN_GAME_PROFILES: Dict[str, Dict[str, Any]] = {
     "Battlefield 1": {
         "engine": "Frostbite 3 (DX11/DX12 via Proton DXVK/VKD3D)",
@@ -355,7 +355,7 @@ KNOWN_GAME_PROFILES: Dict[str, Dict[str, Any]] = {
 
 
 # dataclass(slots=True) exists only on Python 3.10+; use it when available to cut per-instance memory,
-# # otherwise fall back to a plain dataclass with identical behaviour.
+# otherwise fall back to a plain dataclass with identical behaviour.
 if sys.version_info >= (3, 10):
     dataclass_slots = dataclass(slots=True)
 else:
@@ -364,7 +364,7 @@ else:
 
 @dataclass_slots
 # One synthetic input event (key press, click, move or combo) chosen for a frame.
-# # It is only ever queued in memory; nothing here talks to a real input device.
+# It is only ever queued in memory; nothing here talks to a real input device.
 class VirtualHIDAction:
     frame_index: int
     action_type: str  # KEY_PRESS, MOUSE_CLICK, MOVE, COMBO
@@ -381,7 +381,7 @@ class VirtualHIDAction:
 
 @dataclass_slots
 # One row of the game catalog: where a game lives, its estimated footprint, and whether that
-# # footprint fits into free VRAM with and without the governor's memory savings.
+# footprint fits into free VRAM with and without the governor's memory savings.
 class DiscoveredGameEntry:
     name: str
     category: str  # steam_gamedrive, steam_local_ssd, wyldgms_ue5_mod, emulator_rom_iso, pg_interactive
@@ -460,8 +460,8 @@ class GameComparisonResult:
 
 
 # Gate called before any run. In the default hermetic mode it always passes because nothing
-# # leaves memory; a physical-dispatch request additionally needs a long enough HID idle period.
-# # idle_probe_fn is injectable so tests can supply a fake idle time.
+# leaves memory; a physical-dispatch request additionally needs a long enough HID idle period.
+# idle_probe_fn is injectable so tests can supply a fake idle time.
 def check_hid_safety_guard(
     offscreen_hermetic: bool = True,
     idle_probe_fn: Callable[[], float] = probe_linux_hardware_hid_idle_seconds,
@@ -489,8 +489,8 @@ def check_hid_safety_guard(
 
 
 # Loads the external desktop_control module only to build (not run) sample dispatch argument
-# # lists. Any failure is reported as available=False rather than raised, so a missing bridge never
-# # breaks the benchmark.
+# lists. Any failure is reported as available=False rather than raised, so a missing bridge never
+# breaks the benchmark.
 def inspect_desktop_control_bridge() -> Dict[str, Any]:
     """
     Read-only inspection of `/mnt/GameDrive/tiny_dancer/app/desktop_control.py`
@@ -533,7 +533,7 @@ def inspect_desktop_control_bridge() -> Dict[str, Any]:
 
 
 # PNG layout: 8-byte signature, then IHDR (size/bit depth/colour type 0 = grayscale), one IDAT
-# # holding zlib-compressed scanlines, and IEND. Each chunk is length + tag + payload + CRC32.
+# holding zlib-compressed scanlines, and IEND. Each chunk is length + tag + payload + CRC32.
 def render_hud_text_to_png_bytes(text: str, scale: int = 4) -> bytes:
     """
     Renders an uppercase HUD banner string into a crisp, high-contrast 8-bit grayscale
@@ -585,7 +585,7 @@ def render_hud_text_to_png_bytes(text: str, scale: int = 4) -> bytes:
 
 
 # Returns (text, engine). Note the fallback does NOT decode pixels: it simply normalises
-# # expected_hint, so with Tesseract absent the OCR 'accuracy' is trivially 100%.
+# expected_hint, so with Tesseract absent the OCR 'accuracy' is trivially 100%.
 def ocr_hud_png_bytes(png_bytes: bytes, expected_hint: str = "", use_tesseract: bool = True) -> Tuple[str, str]:
     """
     Extracts HUD text from an offscreen PNG framebuffer using `/usr/bin/tesseract`
@@ -601,7 +601,7 @@ def ocr_hud_png_bytes(png_bytes: bytes, expected_hint: str = "", use_tesseract: 
                 tmp.write(png_bytes)
                 tmp.flush()
                 # --psm 7 treats the image as a single text line; the whitelist matches the bitmap font's alphabet.
-                # # The short timeout keeps a hung OCR process from stalling the benchmark.
+                # The short timeout keeps a hung OCR process from stalling the benchmark.
                 proc = subprocess.run(
                     [tesseract_bin, tmp.name, "stdout", "--psm", "7", "-c", "tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:- "],
                     capture_output=True,
@@ -623,7 +623,7 @@ def ocr_hud_png_bytes(png_bytes: bytes, expected_hint: str = "", use_tesseract: 
 
 
 # Score = 65% positional character match + 35% length similarity, on A-Z0-9 only.
-# # A cheap heuristic (not edit distance): one inserted character shifts every later position.
+# A cheap heuristic (not edit distance): one inserted character shifts every later position.
 def compute_ocr_token_similarity(expected: str, actual: str) -> float:
     """Computes character/token accuracy percentage (0-100) between expected HUD banner and OCR read."""
     exp_norm = re.sub(r"[^A-Z0-9]", "", expected.upper())
@@ -640,8 +640,8 @@ def compute_ocr_token_similarity(expected: str, actual: str) -> float:
 
 
 # Ask a local OpenAI-compatible server for one action, falling back to a fixed per-game script.
-# # The LLM is consulted only on frame 0 with a tiny timeout so the render loop can never stall on I/O.
-# # The default endpoint is loopback; no remote service is contacted.
+# The LLM is consulted only on frame 0 with a tiny timeout so the render loop can never stall on I/O.
+# The default endpoint is loopback; no remote service is contacted.
 def query_local_llm_game_action(
     game_id: str,
     hud_text: str,
@@ -765,7 +765,7 @@ def query_local_llm_game_action(
 
 
 # Scoring is a fixed 100-point rubric (35 throughput, 35 1%-low, 20 P99 tightness, 10 stutter bonus).
-# # Grade bands: S >= 90, A >= 80, B >= 65, else C.
+# Grade bands: S >= 90, A >= 80, B >= 65, else C.
 def compute_ai_smoothness_rating(
     avg_fps: float,
     fps_1pct_low: float,
@@ -784,7 +784,7 @@ def compute_ai_smoothness_rating(
     one_pct_target = max(1.0, target_fps * 0.85)
     stability_pts = min(1.0, max(0.0, fps_1pct_low / one_pct_target)) * 35.0
     # P99 is free up to one target-frame interval (1000/target ms); beyond that it loses points linearly,
-    # # reaching zero 35 ms later.
+    # reaching zero 35 ms later.
     p99_penalty = max(0.0, frame_time_p99_ms - (1000.0 / max(1.0, target_fps))) / 35.0
     p99_pts = max(0.0, 1.0 - p99_penalty) * 20.0
     stutter_pts = max(0.0, 10.0 - float(stutter_events) * 2.0)
@@ -802,7 +802,7 @@ def compute_ai_smoothness_rating(
 
 
 # Build the catalog by scanning known library roots. Defaults per category apply to games without an
-# # entry in KNOWN_GAME_PROFILES. Free VRAM = total - AI server VRAM - desktop compositor overhead.
+# entry in KNOWN_GAME_PROFILES. Free VRAM = total - AI server VRAM - desktop compositor overhead.
 def discover_all_game_libraries(
     total_vram_mb: int = 8192,
     ungoverned_ai_vram_mb: int = 5792,
@@ -822,7 +822,7 @@ def discover_all_game_libraries(
     catalog: List[DiscoveredGameEntry] = []
 
     # Merge a known profile (if any) with category defaults, test the fit against both free-VRAM
-    # # budgets, and attach a human-readable recommendation.
+    # budgets, and attach a human-readable recommendation.
     def _add_entry(name: str, category: str, path_obj: Path, default_engine: str, default_vram: int, default_ram: int, default_cache: str, default_fps: int = 60) -> None:
         prof = KNOWN_GAME_PROFILES.get(name, {})
         engine = str(prof.get("engine", default_engine))
@@ -977,8 +977,8 @@ def discover_all_game_libraries(
             )
 
     # Nothing was found on disk: synthesise the catalog from the static profiles, then pad with numbered
-    # # placeholder titles up to 49 entries so downstream totals (and the >= 35 check in --verify) still work.
-    # # These placeholder rows are fabricated data, not real installed games.
+    # placeholder titles up to 49 entries so downstream totals (and the >= 35 check in --verify) still work.
+    # These placeholder rows are fabricated data, not real installed games.
     if not catalog:
         # Cross-platform / portable fallback (e.g. Darwin / macOS where /mnt/GameDrive is unmounted)
         for name, prof in KNOWN_GAME_PROFILES.items():
@@ -1008,8 +1008,8 @@ def discover_all_game_libraries(
 
 
 # Despite the name, this does not run the games. It reads a few strings from each game's source
-# # files to make realistic HUD text, then MODELS frame times with a seeded random generator
-# # (see _simulate_pass). The reported FPS numbers are therefore simulated, not measured.
+# files to make realistic HUD text, then MODELS frame times with a seeded random generator
+# (see _simulate_pass). The reported FPS numbers are therefore simulated, not measured.
 class OffscreenGameSimulator:
     """
     Simulates (does NOT execute) benchmark passes for Ethan's games: it reads a few strings from
@@ -1028,7 +1028,7 @@ class OffscreenGameSimulator:
         self.kid_game_stages = self._load_kid_game_stages()
 
     # Scrape (letter, word) pairs from keys.js with a regex; fall back to a small built-in list when the
-    # # file is absent (the usual case outside the author's machine).
+    # file is absent (the usual case outside the author's machine).
     def _load_baby_game_vocab(self) -> List[Tuple[str, str]]:
         keys_js = PG_ROOT / "baby_game" / "keys.js"
         vocab: List[Tuple[str, str]] = []
@@ -1073,7 +1073,7 @@ class OffscreenGameSimulator:
         return ["CELL TIDEPOOL 865 CREATURES", "SPACE CONTINUOUS FLIGHT"]
 
     # Run the baseline and governed passes and compute percentage deltas.
-    # # Guards (max(...), the zero-stutter special case) avoid division by zero.
+    # Guards (max(...), the zero-stutter special case) avoid division by zero.
     def run_game_benchmark(
         self,
         game_id: str,
@@ -1143,10 +1143,10 @@ class OffscreenGameSimulator:
         return f"DXVK BATTLEFIELD SECTOR {(frame_idx % 6) + 1}"
 
     # Core of the benchmark. Per frame: do a little real trig work, occasionally render+OCR a HUD banner and
-    # # request an action, then COMPOSE a frame time = scaled target interval + a measured CPU term
-    # # + seeded jitter + occasional spike. The governed/baseline difference comes from the constants
-    # # below (0.78 vs 1.12 scale, smaller jitter and spikes), i.e. it is built into the model.
-    # # The random seed is fixed per (game, mode) so every run produces identical numbers.
+    # request an action, then COMPOSE a frame time = scaled target interval + a measured CPU term
+    # + seeded jitter + occasional spike. The governed/baseline difference comes from the constants
+    # below (0.78 vs 1.12 scale, smaller jitter and spikes), i.e. it is built into the model.
+    # The random seed is fixed per (game, mode) so every run produces identical numbers.
     def _simulate_pass(
         self,
         game_id: str,
@@ -1431,7 +1431,7 @@ def run_full_harness_suite(
 
 
 # Render the payload as Markdown. Several figures in the table text (VRAM MiB values, date,
-# # host description) are literal strings, not derived from the payload.
+# host description) are literal strings, not derived from the payload.
 def build_markdown_report(payload: Dict[str, Any]) -> str:
     agg = payload["aggregate_summary"]
     gov_tel = payload["governor_telemetry"]

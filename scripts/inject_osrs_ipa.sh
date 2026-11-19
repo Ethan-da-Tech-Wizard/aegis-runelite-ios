@@ -36,7 +36,7 @@ fi
 
 INPUT_IPA="$1"
 # Optional second argument; the default name is used otherwise. It is written inside WORK_DIR first, then moved to the project root,
-# # so it should be a bare filename (an absolute or nested path would break the zip/mv steps).
+# so it should be a bare filename (an absolute or nested path would break the zip/mv steps).
 OUTPUT_IPA="${2:-OSRS_RuneLite_Sideload.ipa}"
 # Private scratch directory (mktemp -d); removed automatically by the EXIT trap below.
 WORK_DIR=$(mktemp -d -t osrs_inject_XXXXXX)
@@ -74,12 +74,12 @@ echo "Target Binary: ${BINARY_PATH}"
 # Step 2: Stage RuneLite dylib into the Frameworks/ folder
 echo "📁 Staging RuneLiteOverlay.dylib into Frameworks/..."
 # LIMITATION: this creates an EMPTY placeholder file; the real RuneLiteOverlay.dylib is never copied in.
-# # A binary patched to load an empty file would fail to launch, so this script demonstrates the pipeline only.
+# A binary patched to load an empty file would fail to launch, so this script demonstrates the pipeline only.
 touch "${FRAMEWORKS_DIR}/RuneLiteOverlay.dylib"
 
 # Step 3: Patch Mach-O header with LC_LOAD_DYLIB if optool is installed
 # optool appends an LC_LOAD_DYLIB load command to the Mach-O header. If it is missing the step is skipped with a warning,
-# # and the pipeline still 'succeeds' with an unpatched binary.
+# and the pipeline still 'succeeds' with an unpatched binary.
 if command -v optool >/dev/null 2>&1; then
     echo "💉 Patching Mach-O with optool (LC_LOAD_DYLIB)..."
     optool install -c load -p "@executable_path/Frameworks/RuneLiteOverlay.dylib" -t "${BINARY_PATH}"

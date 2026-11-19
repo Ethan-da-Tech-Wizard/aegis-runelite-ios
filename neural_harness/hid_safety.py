@@ -41,14 +41,14 @@ import time
 # Using /tmp ensures temporary file storage that survives script reinvocations
 # without polluting the repository workspace.
 # The file holds {"sig": <signature>, "last_activity_ts": <epoch seconds>} and is shared across processes,
-# # so two harnesses on one machine see each other's idle bookkeeping. Fixed name in /tmp: not safe against other local users.
+# so two harnesses on one machine see each other's idle bookkeeping. Fixed name in /tmp: not safe against other local users.
 STATE_FILE: Path = Path("/tmp") / "hid_idle_state.json"
 
 
 # Idle detection is indirect: it fingerprints several activity counters and treats any change since the
-# # previous call as 'user active now'. Consequences: the first call (no state file) always returns 0.0, and
-# # idle time only grows across successive calls, since the signature is compared with the last stored one.
-# # It also reads counters that other activity (not just human input) can change, which errs on the side of 'busy'.
+# previous call as 'user active now'. Consequences: the first call (no state file) always returns 0.0, and
+# idle time only grows across successive calls, since the signature is compared with the last stored one.
+# It also reads counters that other activity (not just human input) can change, which errs on the side of 'busy'.
 def probe_linux_hardware_hid_idle_seconds() -> float:
     """Probe hardware interrupts, USB traffic, and cursor metrics to calculate idle time.
 
@@ -114,7 +114,7 @@ def probe_linux_hardware_hid_idle_seconds() -> float:
                     prod_name = prod_file.read_text(encoding="utf-8", errors="ignore").strip().lower()
                     # Filter for typical human input peripheral keywords
                     # 'keychron' is excluded, apparently so that one keyboard's own traffic does not mask idleness (the
-                    # # author's choice; the code gives no other reason).
+                    # author's choice; the code gives no other reason).
                     keywords = ("keyboard", "mouse", "receiver", "trackpad", "touchpad")
                     if any(kw in prod_name for kw in keywords) and "keychron" not in prod_name:
                         urb_txt = urb_file.read_text(encoding="utf-8", errors="ignore").strip()

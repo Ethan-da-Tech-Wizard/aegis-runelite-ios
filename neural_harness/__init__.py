@@ -32,9 +32,9 @@ Why This Architecture Exists:
 """
 
 # Re-export the harness's public API. Importing the package also imports the harness module, which sets
-# # SDL_VIDEODRIVER/SDL_AUDIODRIVER to 'dummy' as a side effect.
-# # Accuracy note on the per-symbol comments below: compute_ocr_token_similarity is a positional character-match
-# # heuristic (not Levenshtein), and the library scan covers Steam/emulator/pg folders rather than 'Lutris' or OSRS clients.
+# SDL_VIDEODRIVER/SDL_AUDIODRIVER to 'dummy' as a side effect.
+# Accuracy note on the per-symbol comments below: compute_ocr_token_similarity is a positional character-match
+# heuristic (not Levenshtein), and the library scan covers Steam/emulator/pg folders rather than 'Lutris' or OSRS clients.
 from .ai_game_player_fps_harness import (
     # Constant: Identifies the Howitzer target benchmark application ID
     HOWITZER_APP_ID,

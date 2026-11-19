@@ -70,7 +70,7 @@ EOF
 
 # Step 5: Generate mock binary executable if running on non-macOS environment
 # This script never compiles anything, so the file is always missing here and a stub shell script is written as the 'executable'.
-# # The resulting IPA is therefore a packaging demo, not a runnable app (use build_ipa.sh on macOS for a real binary).
+# The resulting IPA is therefore a packaging demo, not a runnable app (use build_ipa.sh on macOS for a real binary).
 if [ ! -f "${APP_DIR}/RuneLiteMobile" ]; then
     echo "Creating stub universal executable for SideStore payload..."
     echo -e '#!/bin/sh\necho "RuneLite Mobile standalone client"' > "${APP_DIR}/RuneLiteMobile"
