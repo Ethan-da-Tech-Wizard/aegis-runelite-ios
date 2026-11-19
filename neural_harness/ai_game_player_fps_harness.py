@@ -474,9 +474,14 @@ def check_hid_safety_guard(
       - If physical desktop dispatch is ever requested (`offscreen_hermetic=False`),
         requires `probe_linux_hardware_hid_idle_seconds() >= 45.0`.
     """
+
+    # The idle probe is a parameter so tests can simulate "user is typing" (low idle) and "user is away" (high idle) without touching real input devices.
     hw_idle_sec = float(idle_probe_fn())
     # Physical dispatch needs BOTH an explicit opt-out of hermetic mode and sufficient idle time.
+    # Fail-safe truth table: hermetic (default) is always safe because nothing leaves memory; physical dispatch is allowed only when the caller opted out AND the human has been idle long enough not to be interrupted by a synthetic key or focus change.
     physical_allowed = (not offscreen_hermetic) and (hw_idle_sec >= MIN_HID_IDLE_SECONDS)
+
+    # False here is the signal for callers to stop before any HID event is built or sent.
     safe_to_proceed = offscreen_hermetic or physical_allowed
     return {
         "offscreen_hermetic": offscreen_hermetic,
@@ -497,6 +502,8 @@ def inspect_desktop_control_bridge() -> Dict[str, Any]:
     to verify Hyprland Lua/hyprlang key & focus dispatch compatibility without
     sending any physical window focus or key events to Ethan's session.
     """
+
+    # The bridge lives on the author's game drive; on any other machine it is simply absent, which is a normal condition and reported as available=False.
     if not TINY_DANCER_DESKTOP_CTRL.exists():
         return {
             "available": False,
@@ -507,6 +514,7 @@ def inspect_desktop_control_bridge() -> Dict[str, Any]:
     try:
         import importlib.util
 
+        # Loaded by file path (not import) because the module is outside this repository and not on sys.path.
         spec = importlib.util.spec_from_file_location("tiny_dancer_desktop_control", TINY_DANCER_DESKTOP_CTRL)
         if spec is None or spec.loader is None:
             raise RuntimeError("Could not load spec")
@@ -524,6 +532,8 @@ def inspect_desktop_control_bridge() -> Dict[str, Any]:
             "sample_lua_key_dispatch": lua_key_cmd,
             "sample_hyprlang_focus_dispatch": hypr_focus_cmd,
         }
+
+    # Broad catch is intentional: a third-party module can fail in any way on import, and inspection must never abort the benchmark.
     except Exception as exc:
         return {
             "available": False,
@@ -612,6 +622,8 @@ def ocr_hud_png_bytes(png_bytes: bytes, expected_hint: str = "", use_tesseract: 
                     cleaned = " ".join(proc.stdout.upper().split())
                     if cleaned:
                         return cleaned, "tesseract_cli"
+
+        # Any failure (server down, bad JSON, timeout) silently falls through to the deterministic policy below, which is the design: the benchmark must complete without a model.
         except Exception:
             pass
 
@@ -656,6 +668,8 @@ def query_local_llm_game_action(
     with an ultra-fast (<0.1ms) tactical heuristic policy fallback so the render loop
     never stalls.
     """
+
+    # perf_counter is a monotonic high-resolution clock, correct for measuring the policy's own latency even if the wall clock changes.
     t0 = time.perf_counter()
     # Only the first frame pays the network cost; later frames always use the deterministic policy.
     if allow_network_llm and frame_index == 0:
@@ -663,6 +677,8 @@ def query_local_llm_game_action(
             f"Game={game_id} HUD='{hud_text}'. Reply ONLY with JSON: "
             '{"action_type":"KEY_PRESS","key":"KeyA","x":640,"y":360}'
         )
+
+        # max_tokens 28 and temperature 0.1 keep the reply short and nearly deterministic, so a tiny local model answers within the 0.45 s timeout.
         payload = json.dumps(
             {
                 "messages": [{"role": "user", "content": prompt}],
@@ -677,6 +693,8 @@ def query_local_llm_game_action(
             method="POST",
         )
         try:
+
+            # The endpoint is a loopback address by default, so no data leaves the machine; the short timeout means a slow model costs at most one frame.
             with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
                 body = json.loads(resp.read().decode("utf-8", errors="ignore"))
                 content = (
@@ -696,6 +714,8 @@ def query_local_llm_game_action(
                     key_name = str(parsed.get("key", "KeyA"))[:24]
                     x = int(parsed.get("x", 640))
                     y = int(parsed.get("y", 360))
+
+                    # Latency is recorded in the action so the report can show the real cost of the policy (microseconds for the heuristic, milliseconds when the model answered).
                     dt_ms = round((time.perf_counter() - t0) * 1000.0, 3)
                     return VirtualHIDAction(
                         frame_index=frame_index,
@@ -712,6 +732,7 @@ def query_local_llm_game_action(
 
     # Fallback policy: cycle through a fixed script per game, indexed by frame number (reproducible).
     # Deterministic tactical policy per game engine
+    # Each branch is a hand-written script of plausible inputs for that game, cycled by frame index, so repeated benchmark runs produce the same action sequence and results stay comparable.
     if game_id == "baby_game":
         keys = ["KeyA", "KeyB", "KeyC", "KeyP", "KeyT", "KeyS", "Space", "Tab"]
         k = keys[frame_index % len(keys)]
