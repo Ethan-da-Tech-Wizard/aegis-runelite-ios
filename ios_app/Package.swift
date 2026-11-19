@@ -26,6 +26,7 @@ import PackageDescription
 
 let package = Package(
     name: "RuneLiteMobile",
+    // Minimum deployment target is iOS 16.
     platforms: [
         .iOS(.v16)
     ],
@@ -43,6 +44,8 @@ let package = Package(
     targets: [
         .target(
             name: "RuneLiteCore",
+            // RuneLiteCore compiles the whole Sources/ tree except the UIKit entry points and the C/Objective-C injection stubs,
+            // which cannot be built as part of a plain Swift package target.
             dependencies: [],
             path: "Sources",
             exclude: [
@@ -52,6 +55,7 @@ let package = Package(
                 "Injection/MetalHook.m"
             ]
         ),
+        // The app executable is built only from Sources/App and links against RuneLiteCore.
         .executableTarget(
             name: "RuneLiteMobile",
             dependencies: ["RuneLiteCore"],

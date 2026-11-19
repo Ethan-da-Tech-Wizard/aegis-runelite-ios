@@ -28,6 +28,7 @@
 import Foundation
 
 /// Base protocol defining standard properties for dynamic game entities (Players and NPCs).
+// Read-only view of any in-game character; classes (AnyObject) so state changes are shared by reference.
 public protocol Actor: AnyObject {
     var name: String { get }
     var combatLevel: Int { get }
@@ -40,6 +41,7 @@ public protocol Actor: AnyObject {
 }
 
 /// Concrete model representing another human player character in the game world.
+// healthRatio/healthScale follow the OSRS convention: ratio out of scale (30 of 30 = full health bar). The defaults are placeholders.
 public final class PlayerActor: Actor {
     public let name: String
     public var combatLevel: Int
@@ -51,6 +53,7 @@ public final class PlayerActor: Actor {
     public var isInteracting: Bool
 
     /// Convenience alias for world coordinate tile.
+    // Alias for worldPoint, named to match RuneLite's Java API for easier porting of plugins.
     public var worldLocation: WorldPoint {
         get { return worldPoint }
         set { worldPoint = newValue }
@@ -94,6 +97,7 @@ public final class PlayerActor: Actor {
 }
 
 /// Concrete model representing a Non-Player Character (monster, merchant, boss).
+// Same shape as PlayerActor plus the NPC definition id.
 public final class NpcActor: Actor {
     public let id: Int
     public let name: String

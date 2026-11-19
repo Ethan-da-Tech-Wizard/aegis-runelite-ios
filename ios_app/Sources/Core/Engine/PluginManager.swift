@@ -33,6 +33,7 @@ public final class PluginManager: ObservableObject {
     public static let shared = PluginManager()
 
     /// Array of all registered plugins currently loaded in memory.
+    // Mutations happen on the caller's thread; call register/setPluginEnabled from the main thread since SwiftUI observes this.
     @Published public private(set) var registeredPlugins: [Plugin] = []
     private var pluginMap: [String: Plugin] = [:]
     private let userDefaults = UserDefaults.standard
@@ -47,6 +48,7 @@ public final class PluginManager: ObservableObject {
         pluginMap[plugin.id] = plugin
 
         // Load saved enabled state from persistent storage (defaults to enabled)
+        // Per-plugin enabled flag is stored under 'plugin_enabled_<id>'; a plugin never seen before defaults to enabled.
         let savedState = userDefaults.object(forKey: "plugin_enabled_\(plugin.id)") as? Bool ?? true
         plugin.isEnabled = savedState
 
@@ -83,6 +85,7 @@ public final class PluginManager: ObservableObject {
     ///
     /// - Parameter context: The MetalRenderContext containing camera and viewport parameters.
     /// - Returns: Consolidated array of OverlayDrawCommands to be rendered by Metal.
+    // Called once per rendered frame; each enabled plugin returns plain draw-command values that the Metal renderer then converts to triangles.
     public func collectDrawCommands(context: MetalRenderContext) -> [OverlayDrawCommand] {
         var allCommands: [OverlayDrawCommand] = []
         for plugin in registeredPlugins where plugin.isEnabled {
@@ -97,6 +100,7 @@ public final class PluginManager: ObservableObject {
     /// - Parameter type: The expected Plugin class type.
     /// - Returns: Casted plugin instance or nil.
     public func getPlugin<T: Plugin>(type: T.Type) -> T? {
+        // Returns the first registered plugin of that concrete type.
         return registeredPlugins.first { $0 is T } as? T
     }
 }

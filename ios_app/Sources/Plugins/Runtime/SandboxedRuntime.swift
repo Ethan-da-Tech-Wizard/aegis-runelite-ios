@@ -35,6 +35,7 @@ import Foundation
 import JavaScriptCore
 
 /// Declarative draw commands emitted by sandboxed community plugins.
+// Plain data a script hands back via renderOverlay(); coordinates are optional because world- and screen-anchored commands use different fields.
 public struct ScriptDrawCommand {
     public let pluginId: String
     public let layer: String     // "world", "dynamic", "infobox"
@@ -61,6 +62,8 @@ public final class SandboxedRuntime {
     private let lock = NSLock()
 
     // Banned terms to enforce Jagex anti-cheat rules before script evaluation
+    // Despite the name this is a plain substring blacklist, not an AST check. It is trivially bypassed (string concatenation, other names)
+    // and can also block harmless scripts that merely contain one of the words.
     private let forbiddenAstTokens = [
         "autoPrayer", "oneClickAgility", "packetSender",
         "simulateTouch", "autoAlch", "bossProjectilePredictor",
@@ -76,6 +79,7 @@ public final class SandboxedRuntime {
     /// Configure secure, stripped-down sandbox environment without network access.
     private func setupSandboxBridges() {
         // Step 1: Remove dangerous web, network, and thread primitives
+        // (JavaScriptCore does not provide these browser globals by default, so the deletes are belt-and-braces.)
         context.evaluateScript("""
             delete this.fetch;
             delete this.XMLHttpRequest;
@@ -85,6 +89,7 @@ public final class SandboxedRuntime {
         """)
 
         // Step 2: Global JavaScript Exception Handler
+        // Script errors are logged, not propagated, so one bad plugin cannot crash the host.
         context.exceptionHandler = { _, exception in
             if let exc = exception {
                 print("❌ [SandboxedRuntime Exception]: \(exc.toString() ?? "Unknown error")")
@@ -92,6 +97,7 @@ public final class SandboxedRuntime {
         }
 
         // Step 3: Read-Only Game State Provider (Immutable JSON bridge)
+        // Scripts get COPIES (dictionaries) of game state through these blocks, never references to the Swift objects.
         let getPlayerState: @convention(block) () -> [String: Any] = {
             let player = GameState.shared.localPlayer
             return [
@@ -121,6 +127,8 @@ public final class SandboxedRuntime {
         context.setObject(getGroundItems, forKeyedSubscript: "getGroundItems" as NSString)
 
         // Step 5: Declarative Overlay Drawing Sink
+        // The only output channel for scripts: they queue declarative commands, with defaults for missing fields. Guarded by a lock because
+        // scripts run on the thread that calls dispatchGameTick.
         let renderOverlayBlock: @convention(block) (NSDictionary) -> Void = { [weak self] rawCommand in
             guard let self = self else { return }
             let pluginId = rawCommand["pluginId"] as? String ?? "unknown"
@@ -156,6 +164,7 @@ public final class SandboxedRuntime {
     ///
     /// - Parameter source: Raw JavaScript source code string.
     /// - Returns: Tuple containing validation boolean and failure reason if blocked.
+    // Static pre-check only; see forbiddenAstTokens for its limits.
     public func validateScriptSource(_ source: String) -> (isValid: Bool, reason: String?) {
         for token in forbiddenAstTokens {
             if source.contains(token) {
@@ -180,6 +189,8 @@ public final class SandboxedRuntime {
         }
 
         // Step 2: Wrap source in CommonJS module closure
+        // CommonJS-style wrapper so a plugin can assign module.exports. The source is interpolated directly, so a script is trusted to be
+        // well-formed JavaScript (a stray unmatched brace would break the wrapper).
         let wrappedSource = """
             (function() {
                 var module = { exports: {} };
@@ -195,6 +206,7 @@ public final class SandboxedRuntime {
             return false
         }
 
+        // All plugins share ONE JSContext, so they can see each other's globals; the sandbox isolates them from the host, not from each other.
         loadedPlugins[id] = pluginInstance
 
         // Step 4: Call lifecycle startUp hook if implemented
@@ -222,6 +234,7 @@ public final class SandboxedRuntime {
     /// Dispatches 600ms game tick to all active sandboxed plugins.
     ///
     /// - Parameter tick: Monotonically increasing tick counter.
+    // Draw commands are cleared at the start of each tick; flushDrawCommands() drains whatever scripts queued.
     public func dispatchGameTick(tick: Int) {
         lock.lock()
         queuedDrawCommands.removeAll()

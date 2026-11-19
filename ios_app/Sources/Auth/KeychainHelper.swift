@@ -31,6 +31,8 @@ import Security
 /// Secure enclave and Keychain manager for storing Jagex OAuth2 tokens.
 public final class KeychainHelper {
     /// Shared singleton instance ensuring synchronized access across the app.
+    // Accuracy note: this wrapper uses plain Keychain generic-password items. It does not use the Secure Enclave or
+    // biometric access control (no SecAccessControl flags); protection comes from the AfterFirstUnlockThisDeviceOnly class.
     public static let shared = KeychainHelper()
 
     /// Unique service identifier grouping all credentials under the RuneLite auth domain.
@@ -53,6 +55,8 @@ public final class KeychainHelper {
         // - kSecAttrAccount: The specific key name
         // - kSecValueData: The encrypted payload bytes
         // - kSecAttrAccessible: Hardware policy (unlocked device only, no iCloud migration)
+        // The delete-then-add sequence in save() makes it an upsert; the delete uses the same dictionary, which is acceptable because
+        // SecItemDelete only matches on the class/service/account attributes.
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
@@ -90,6 +94,7 @@ public final class KeychainHelper {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
 
         // Step 3: Verify success and downcast CFTypeRef to Swift Data
+        // A missing item (errSecItemNotFound) and any other Keychain error both map to nil; callers cannot tell them apart.
         guard status == errSecSuccess, let data = item as? Data else {
             return nil
         }

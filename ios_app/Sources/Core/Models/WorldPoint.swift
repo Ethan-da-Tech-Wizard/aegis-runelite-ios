@@ -36,6 +36,7 @@
 import Foundation
 
 /// Represents a three-dimensional world coordinate tile in the OSRS universe.
+// Absolute tile coordinates on the OSRS map. 'plane' is the height level (0 ground .. 3 top floor).
 public struct WorldPoint: Hashable, Codable, Sendable, CustomStringConvertible {
     /// World coordinate X (Global Gielinor grid: 1152 ... 3904)
     public let x: Int
@@ -53,6 +54,7 @@ public struct WorldPoint: Hashable, Codable, Sendable, CustomStringConvertible {
     public init(x: Int, y: Int, plane: Int = 0) {
         self.x = x
         self.y = y
+        // Clamp to the four valid planes.
         self.plane = max(0, min(3, plane))
     }
 
@@ -65,6 +67,7 @@ public struct WorldPoint: Hashable, Codable, Sendable, CustomStringConvertible {
     ///
     /// - Parameter other: Target WorldPoint.
     /// - Returns: Number of tile steps, or Int.max if points are on different planes.
+    // Chebyshev distance: matches OSRS movement where a diagonal step costs the same as a straight step.
     public func distanceTo(_ other: WorldPoint) -> Int {
         // Different elevation planes cannot be reached via 2D walking
         guard self.plane == other.plane else { return Int.max }
@@ -100,6 +103,7 @@ public struct WorldPoint: Hashable, Codable, Sendable, CustomStringConvertible {
     ///   - baseX: Bottom-left world X tile of the loaded 104x104 scene.
     ///   - baseY: Bottom-left world Y tile of the loaded 104x104 scene.
     /// - Returns: LocalPoint fine coordinates, or nil if outside loaded scene bounds.
+    // Returns nil when the tile is outside the currently loaded 104x104 scene.
     public func toLocalPoint(baseX: Int, baseY: Int) -> LocalPoint? {
         // Convert tile offset to fine units (128 fine units per tile; +64 centers on tile)
         let sceneX = (self.x - baseX) * 128 + 64

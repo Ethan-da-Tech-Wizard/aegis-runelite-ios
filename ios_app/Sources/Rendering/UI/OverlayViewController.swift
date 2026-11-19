@@ -43,12 +43,14 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
     private var metalView: MTKView!
     private var settingsButton: UIButton!
     private var compassButton: UIButton!
+    // Everything here runs against simulated state: a 0.6 s timer drives GameState instead of a real game connection.
     private var simulatedTickTimer: Timer?
     private var activeContextMenu: UIView?
 
     public override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
+        // Required for the two-finger camera gesture.
         view.isMultipleTouchEnabled = true
 
         // Initialize user interface and hardware rendering subsystems
@@ -77,18 +79,21 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         metalView.backgroundColor = .clear
 
         // Enable 120Hz ProMotion when supported by iPhone hardware
+        // ProMotion devices render at 120 Hz, others at 60.
         if UIScreen.main.maximumFramesPerSecond >= 120 {
             metalView.preferredFramesPerSecond = 120
         } else {
             metalView.preferredFramesPerSecond = 60
         }
 
+        // The Metal layer is draw-only; touches reach this controller's touchesBegan/Moved/Ended overrides.
         metalView.isUserInteractionEnabled = false // Passes touches to container view controller
         view.addSubview(metalView)
     }
 
     /// Sets up floating circular buttons for settings and camera compass.
     private func setupFloatingControls() {
+        // Read during viewDidLoad, when safe-area insets may still be zero; the max(44, ...) keeps buttons below the status bar regardless.
         let safeArea = view.safeAreaInsets
 
         // Settings Button (Gear icon)
@@ -121,11 +126,13 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
     @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
         if recognizer.state == .changed {
             TouchAndCameraPipeline.shared.handlePinchZoom(scaleDelta: recognizer.scale)
+            // Reset after each change so each callback delivers an incremental scale, matching handlePinchZoom's delta use.
             recognizer.scale = 1.0
         }
     }
 
     /// Registers the default suite of native mobile plugins.
+    // The five bundled native plugins; their saved enabled state is restored by PluginManager.register.
     private func registerDefaultPlugins() {
         let pm = PluginManager.shared
         pm.register(plugin: TileIndicatorsPlugin())
@@ -137,6 +144,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
 
     /// Starts 600ms tick timer driving the OSRS simulation loop.
     private func startSimulatedTelemetry() {
+        // Stand-in for the game's 600 ms tick. Also steps the JavaScript plugins through SandboxedRuntime.
         simulatedTickTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { _ in
             GameState.shared.onTick()
             // Dispatch tick to sandboxed plugins
@@ -161,6 +169,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         dismissContextMenu()
         for touch in touches {
+            // Result is ignored on purpose: a failed check is logged by the engine, and in release builds a critical violation aborts the app.
             _ = JagexComplianceEngine.shared.validateTouchEvent(touch)
         }
         TouchAndCameraPipeline.shared.handleTouchesBegan(touches, in: view)
@@ -192,6 +201,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         showContextMenu(at: point, worldPoint: worldPoint)
     }
 
+    // Rotate the compass opposite to the camera yaw so the red arrow keeps pointing north.
     public func didUpdateCamera(yaw: Int, pitch: Int, zoom: Int) {
         // Update compass icon rotation based on camera yaw
         let angleRadians = Double(yaw) / 2048.0 * (2.0 * .pi)
@@ -202,6 +212,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
 
     /// Renders the classic OSRS crosshair click marker animation.
     private func showClickAnimation(at point: CGPoint, color: UIColor) {
+        // Rotated 45 degrees so the bordered square reads as an 'X'-style click marker; it fades and grows, then removes itself.
         let marker = UIView(frame: CGRect(x: point.x - 12, y: point.y - 12, width: 24, height: 24))
         marker.layer.borderColor = color.cgColor
         marker.layer.borderWidth = 3.0
@@ -235,6 +246,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         titleLabel.textColor = .systemYellow
         menu.addSubview(titleLabel)
 
+        // 'Walk here' only dismisses the menu; it does not move the player yet.
         let walkButton = UIButton(type: .system)
         walkButton.frame = CGRect(x: 12, y: 32, width: 180, height: 30)
         walkButton.contentHorizontalAlignment = .leading
@@ -251,6 +263,7 @@ public final class OverlayViewController: UIViewController, TouchAndCameraDelega
         cancelBtn.addTarget(self, action: #selector(dismissContextMenu), for: .touchUpInside)
         menu.addSubview(cancelBtn)
 
+        // Clamp the menu inside the view bounds with a margin.
         let menuX = min(max(10, point.x - 20), view.bounds.width - 210)
         let menuY = min(max(60, point.y - 40), view.bounds.height - 110)
         menu.frame = CGRect(x: menuX, y: menuY, width: 200, height: 100)

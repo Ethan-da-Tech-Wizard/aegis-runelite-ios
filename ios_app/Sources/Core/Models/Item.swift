@@ -28,6 +28,7 @@
 import Foundation
 
 /// Value tier classification for Ground Items plugin.
+// Colour buckets for the Ground Items overlay; the thresholds are applied in Item.valueTier.
 public enum ItemValueTier: String, Codable, Sendable {
     case hidden
     case low       // < 10,000 GP
@@ -101,6 +102,7 @@ public struct Item: Hashable, Codable, Sendable, Identifiable {
     }
 
     /// Determine value tier based on the higher of GE price or High Alchemy price.
+    // Uses the higher of GE and High-Alchemy totals. Note the .hidden tier is never returned here; it exists for callers that filter items out.
     public var valueTier: ItemValueTier {
         let val = max(totalGeValue, totalHaValue)
         if val >= 1_000_000 {

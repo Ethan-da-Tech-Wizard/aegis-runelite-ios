@@ -31,11 +31,14 @@ import Foundation
 import CoreGraphics
 
 /// Observable game state snapshot updated by the native engine hook or local simulation.
+// Single shared model that the renderer, plugins and touch pipeline read. Every value here is local simulation/demo data
+// (placeholder player name, sample skills and XP); nothing is read from a live game client.
 public final class GameState: ObservableObject {
     /// Shared singleton instance accessible by overlays, plugins, and the camera pipeline.
     public static let shared = GameState()
 
     // Base coordinates for the 104x104 scene
+    // World coordinates of the scene's south-west corner (Lumbridge area by default).
     @Published public var baseTileX: Int = 3200
     @Published public var baseTileY: Int = 3200
     @Published public var currentPlane: Int = 0
@@ -46,6 +49,7 @@ public final class GameState: ObservableObject {
     @Published public var hoverTile: WorldPoint? = nil
 
     // Camera parameters (Pitch 128...383, Yaw 0...2047, Zoom 180...896)
+    // Camera position and orientation in OSRS 'local' fine units (128 per tile); angles are 0-2047 per full turn.
     @Published public var cameraX: Int = 6656
     @Published public var cameraY: Int = 6656
     @Published public var cameraZ: Int = 1000
@@ -60,6 +64,7 @@ public final class GameState: ObservableObject {
     @Published public var groundItems: [Item] = []
 
     // Skills & Experience dictionary mapping skill names to current level and XP
+    // Sample data: (level, total XP). Level 99 is 13,034,431 XP in OSRS.
     @Published public var skills: [String: (level: Int, xp: Int)] = [
         "Attack": (99, 13_034_431),
         "Strength": (99, 13_034_431),
@@ -82,6 +87,7 @@ public final class GameState: ObservableObject {
     }
 
     // Ground elevation 2D array [104][104]
+    // Not @Published: height changes do not trigger SwiftUI updates. Flat (all zeros) unless a loader fills it in.
     public var tileHeights: [[Int]] = Array(repeating: Array(repeating: 0, count: 104), count: 104)
 
     private init() {}
@@ -100,6 +106,7 @@ public final class GameState: ObservableObject {
     }
 
     /// Process a new 600ms game tick from the engine and notify plugins.
+    // Called by a 0.6-second timer in OverlayViewController, standing in for the real 600 ms game tick.
     public func onTick() {
         currentTick += 1
         EventBus.shared.publish(GameTickEvent(tickCount: currentTick))
@@ -117,6 +124,7 @@ public final class GameState: ObservableObject {
     /// - Parameters:
     ///   - skillName: Name of the skill (e.g., "Attack", "Woodcutting").
     ///   - amount: Amount of XP points gained.
+    // Level is recomputed from total XP after each gain. Unknown skill names are ignored silently.
     public func addExperience(skillName: String, amount: Int) {
         guard var current = skills[skillName] else { return }
         current.xp += amount
@@ -137,6 +145,8 @@ public final class GameState: ObservableObject {
     ///
     /// - Parameter xp: Accumulated experience points.
     /// - Returns: Calculated level from 1 to 99.
+    // OSRS XP table: the XP for level L+1 is floor(sum over k=1..L of floor(k + 300*2^(k/7)) / 4). Loop stops at the first level whose
+    // next-level threshold is above xp; 99 is the cap (XP beyond 13,034,431 does not add levels here).
     private func calculateLevel(xp: Int) -> Int {
         var points = 0
         for lvl in 1...99 {

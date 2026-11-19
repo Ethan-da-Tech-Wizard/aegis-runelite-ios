@@ -36,11 +36,13 @@ public struct PluginHubView: View {
     @State private var selectedFilter: String = "All"
     @Environment(\.presentationMode) var presentationMode
 
+    // Filter chips; 'All' plus tag names used in the sample catalog.
     private let categories = ["All", "pvm", "skilling", "utility", "quests", "combat"]
 
     public init() {}
 
     /// Computed property returning filtered plugins matching both category and search query.
+    // Case-insensitive search over name/summary/author combined (AND) with the selected tag chip.
     public var filteredPlugins: [HubPluginManifest] {
         hubClient.availablePlugins.filter { plugin in
             let matchesCategory = selectedFilter == "All" || plugin.tags.contains(selectedFilter)
@@ -97,6 +99,7 @@ public struct PluginHubView: View {
                                             // Toggle plugin enabled / disabled
                                             Toggle("", isOn: Binding(
                                                 get: { plugin.isEnabled },
+                                                // SwiftUI Binding bridges the Toggle to the client's method since the manifest is a value type held in an array.
                                                 set: { hubClient.togglePlugin(id: plugin.id, isEnabled: $0) }
                                             ))
                                             .labelsHidden()
@@ -113,6 +116,7 @@ public struct PluginHubView: View {
                                     } else {
                                         // Install plugin button
                                         Button(action: {
+                                            // Result is ignored, so a failed install shows no error to the user.
                                             hubClient.installPlugin(manifest: plugin) { _ in }
                                         }) {
                                             Text("Install")

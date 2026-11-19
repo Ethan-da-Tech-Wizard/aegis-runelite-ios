@@ -29,6 +29,7 @@ import Foundation
 import CommonCrypto
 
 /// Metadata describing a plugin available from the RuneLite Plugin Hub.
+// Metadata for one hub plugin. sha256Hash/bundleUrl describe the intended download and integrity check.
 public struct HubPluginManifest: Identifiable, Codable {
     public let id: String
     public let displayName: String
@@ -91,6 +92,7 @@ public final class PluginHubClient: ObservableObject {
     @Published public var isFetching: Bool = false
     @Published public var statusMessage: String = ""
 
+    // Declared but never used: no network fetch of the real hub catalog is implemented in this class.
     private let hubManifestUrl = "https://raw.githubusercontent.com/runelite/plugin-hub/master/plugins.json"
     private let installedStorageKey = "runelite.pluginhub.installed"
 
@@ -102,6 +104,8 @@ public final class PluginHubClient: ObservableObject {
     // MARK: - Official Catalog & Verification
 
     /// Curated catalog of high-demand, fully compliant RuneLite Plugin Hub plugins.
+    // Hard-coded sample catalog. The versions, authors and sha256 values are placeholders (several look like patterned dummy hashes),
+    // not data from the real RuneLite Plugin Hub.
     private func populateDefaultVerifiedCatalog() {
         let curated: [HubPluginManifest] = [
             HubPluginManifest(
@@ -173,6 +177,8 @@ public final class PluginHubClient: ObservableObject {
     /// - Parameters:
     ///   - manifest: Plugin descriptor to install.
     ///   - completion: Callback returning success or error.
+    // IMPORTANT: this does NOT download bundleUrl or verify sha256Hash. It installs a small generated demo script that just draws a tick counter,
+    // so 'installing' any catalog entry runs the same stub with that entry's name.
     public func installPlugin(manifest: HubPluginManifest, completion: @escaping (Result<Void, Error>) -> Void) {
         // Step 1: Synthesize sandboxed JavaScript wrapper code
         let samplePluginCode = """
@@ -239,6 +245,7 @@ public final class PluginHubClient: ObservableObject {
     /// - Parameters:
     ///   - id: Plugin identifier.
     ///   - isEnabled: Boolean target state.
+    // Re-enabling goes through installPlugin again (reloading the stub); disabling unloads it from the runtime.
     public func togglePlugin(id: String, isEnabled: Bool) {
         if var manifest = installedPlugins[id] {
             manifest.isEnabled = isEnabled
@@ -256,6 +263,7 @@ public final class PluginHubClient: ObservableObject {
     // MARK: - Storage Persistence
 
     /// Persist installed plugins array as JSON into UserDefaults.
+    // Persisted in UserDefaults as JSON; only manifests are stored, not any plugin code.
     private func saveInstalledState() {
         let encoder = JSONEncoder()
         if let encoded = try? encoder.encode(Array(installedPlugins.values)) {

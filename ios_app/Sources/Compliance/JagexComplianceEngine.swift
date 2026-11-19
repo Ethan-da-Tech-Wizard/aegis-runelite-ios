@@ -38,6 +38,7 @@ import Foundation
 import UIKit
 
 /// Severity rating of a detected compliance violation.
+// Only critical violations can abort the app (see recordViolation).
 public enum ComplianceViolationSeverity: String, Sendable {
     case warning
     case criticalSecurityViolation
@@ -49,6 +50,7 @@ public final class JagexComplianceEngine {
     /// Shared singleton engine instance.
     public static let shared = JagexComplianceEngine()
 
+    // Guards the violations log, which can be appended to from any thread.
     private let lock = NSLock()
     private var violations: [String] = []
 
@@ -61,6 +63,7 @@ public final class JagexComplianceEngine {
     /// - Returns: True if the touch exhibits authentic physical human characteristics.
     public func validateTouchEvent(_ touch: UITouch) -> Bool {
         // Step 1: Verify touch target view is valid
+        // Touches that have lost their target view are treated as synthetic.
         guard touch.view != nil else {
             recordViolation("Synthetic touch rejected: missing target view", severity: .criticalSecurityViolation)
             return false
@@ -70,6 +73,8 @@ public final class JagexComplianceEngine {
         // Automated bot scripts typically synthesize synthetic touch objects with radius = 0.0
         let radius = touch.majorRadius
         let tolerance = touch.majorRadiusTolerance
+        // Heuristic only: the iOS Simulator and some input paths report zero radius, so this can reject legitimate events there
+        // (compare TouchAndCameraPipeline.validateHardwareDigitizer, which skips this check on the simulator).
         if radius <= 0.0 && tolerance <= 0.0 {
             // Suspicious synthetic event detected
             recordViolation("Synthetic touch rejected: zero contact radius (bot signature detected)", severity: .criticalSecurityViolation)
@@ -78,6 +83,7 @@ public final class JagexComplianceEngine {
 
         // Step 3: Verify timestamp monotonicity
         // Ensures touch events occur in real-time without artificial replay delays or clock skew
+        // UITouch.timestamp is on the same system-uptime clock; a gap over 2 seconds means the event is stale or replayed.
         let now = ProcessInfo.processInfo.systemUptime
         if abs(now - touch.timestamp) > 2.0 {
             recordViolation("Synthetic touch rejected: invalid timestamp drift", severity: .criticalSecurityViolation)
@@ -96,6 +102,7 @@ public final class JagexComplianceEngine {
     /// - Returns: True if zero prohibited capabilities were requested.
     public func auditPluginCapabilities(pluginId: String, requestedCapabilities: Set<String>) -> Bool {
         // Explicit set of banned automated and unfair-advantage capabilities
+        // Capability names are matched exactly; a plugin that simply omits or renames a capability is not detected by this audit.
         let prohibitedCapabilities: Set<String> = [
             "auto_prayer_flick",
             "auto_clicker",
@@ -128,6 +135,7 @@ public final class JagexComplianceEngine {
 
         if severity == .criticalSecurityViolation {
             // In release builds, abort or disable the offending component immediately to prevent any ban risk
+            // Release builds crash immediately on a critical violation (fatalError); debug builds only log, so development is not interrupted.
             #if !DEBUG
             fatalError("Critical Jagex Client Compliance Violation: \(message)")
             #endif

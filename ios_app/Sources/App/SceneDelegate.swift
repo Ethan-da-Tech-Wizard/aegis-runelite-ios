@@ -25,6 +25,7 @@
 
 import UIKit
 
+// Info.plist's scene manifest must name this class for UIKit to instantiate it.
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // Reference to the main window displayed on the physical device screen
     var window: UIWindow?

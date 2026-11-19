@@ -33,6 +33,7 @@ import MetalKit
 import simd
 
 /// 2D Vertex structure passed to the GPU vertex shader.
+// Layout must match the vertex struct declared in Shaders.metal (float2 position + float4 colour).
 struct OverlayVertex {
     var position: SIMD2<Float>  // Pixel coordinate (X, Y)
     var color: SIMD4<Float>     // Normalized RGBA color (0.0 to 1.0)
@@ -71,6 +72,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
 
         do {
             // Step 3: Access precompiled default Metal shading library (Shaders.metal)
+            // If the shader library is missing the pipeline stays nil and draw(in:) returns early each frame, so nothing is drawn.
             guard let defaultLibrary = defaultDevice.makeDefaultLibrary() else {
                 print("⚠️ [MetalOverlayRenderer] Default Metal library not found, building runtime shaders.")
                 return
@@ -85,6 +87,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
             pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
             // Step 5: Configure hardware alpha blending for smooth transparent HUD overlays
+            // Standard source-alpha blending so semi-transparent overlays composite over the game/background.
             pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
             pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
             pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
@@ -107,6 +110,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
     /// - Parameters:
     ///   - view: The MTKView triggering the update.
     ///   - size: New drawable size in pixels.
+    // Keeps GameState.viewportSize in sync with the drawable size (in pixels, whereas draw uses view.bounds in points).
     public func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         GameState.shared.viewportSize = size
     }
@@ -123,6 +127,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
         }
 
         // Configure transparent background: alpha = 0.0 clears frame without black opaque wash
+        // Clear to fully transparent so only overlay shapes are visible.
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0.0)
 
@@ -135,6 +140,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
         renderEncoder.setRenderPipelineState(pipelineState)
 
         // Pass viewport dimensions uniform buffer to vertex shader at buffer index 1
+        // Passed to the vertex shader to convert pixel coordinates to clip space.
         var uniforms = ViewportUniforms(viewportSize: SIMD2<Float>(Float(view.bounds.width), Float(view.bounds.height)))
         renderEncoder.setVertexBytes(&uniforms, length: MemoryLayout<ViewportUniforms>.stride, index: 1)
 
@@ -193,6 +199,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
                 vertices.append(OverlayVertex(position: p2, color: col))
                 vertices.append(OverlayVertex(position: p3, color: col))
 
+            // Not rendered by this Metal path; the in-code note about a CoreAnimation text layer refers to code that does not exist in this repo.
             case .text, .icon:
                 // Text layers rendered via CoreAnimation overlay
                 break
@@ -202,6 +209,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
         // If vertices exist, upload to GPU shared memory buffer and issue draw call
         if !vertices.isEmpty, let device = self.device {
             let bufferSize = vertices.count * MemoryLayout<OverlayVertex>.stride
+            // A new buffer is allocated every frame; fine for small overlays, wasteful for heavy ones.
             let vertexBuffer = device.makeBuffer(bytes: vertices, length: bufferSize, options: .storageModeShared)
             renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
             renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertices.count)
@@ -215,6 +223,7 @@ public final class MetalOverlayRenderer: NSObject, MTKViewDelegate {
 
     /// Converts standard CoreGraphics CGColor into SIMD4<Float> format required by Metal.
     private func simdColor(from cgColor: CGColor) -> SIMD4<Float> {
+        // Assumes an RGB colour space; grayscale CGColors (2 components) fall back to opaque white.
         guard let components = cgColor.components, components.count >= 3 else {
             return SIMD4<Float>(1, 1, 1, 1)
         }

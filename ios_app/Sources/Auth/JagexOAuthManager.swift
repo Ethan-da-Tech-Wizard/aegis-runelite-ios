@@ -42,6 +42,7 @@ import AuthenticationServices
 import CommonCrypto
 
 /// Jagex OAuth2 Token response structure containing access tokens and session data.
+// Field names map from the OAuth2 snake_case JSON keys via CodingKeys below.
 public struct JagexTokenResponse: Codable, Sendable {
     public let accessToken: String
     public let refreshToken: String?
@@ -66,6 +67,8 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
     public static let shared = JagexOAuthManager()
 
     // Official Jagex Identity Provider Endpoints
+    // Endpoint, client id and scopes are hard-coded constants (not secrets). The client id is the app's own claim and must match
+    // whatever the identity provider actually registered; verify it before relying on this flow.
     public static let authorizeURL = "https://account.jagex.com/oauth2/auth"
     public static let tokenURL = "https://account.jagex.com/oauth2/token"
     public static let clientId = "oldschool-runescape-mobile-ios"
@@ -73,11 +76,13 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
     public static let scopes = "openid offline gametoken"
 
     // Observable published properties binding authentication state directly to SwiftUI views
+    // @Published properties are mutated only on the main queue so SwiftUI observers update safely.
     @Published public var isAuthenticated: Bool = false
     @Published public var characterName: String? = nil
     @Published public var isAuthenticating: Bool = false
     @Published public var authError: String? = nil
 
+    // The PKCE verifier lives only in memory for the duration of one login attempt.
     private var currentCodeVerifier: String?
     private var authSession: ASWebAuthenticationSession?
 
@@ -87,6 +92,8 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
     }
 
     /// Check if a valid refresh token exists in the Keychain from a previous session.
+    // Presence of a non-empty refresh token is treated as 'signed in'. The token is not validated or refreshed here, and the
+    // displayed character name is a placeholder string, not data from Jagex.
     private func checkExistingAuth() {
         if let tokenData = KeychainHelper.shared.read(key: "jagex_refresh_token"),
            let token = String(data: tokenData, encoding: .utf8), !token.isEmpty {
@@ -98,6 +105,7 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
     /// Presentation context anchor for ASWebAuthenticationSession.
     /// Tells the operating system which UIWindow to present the authentication sheet over.
     public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        // Fall back to an empty UIWindow if no scene is connected yet; the sheet would then fail to present.
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first else {
             return UIWindow()
@@ -115,6 +123,8 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
             self.authError = nil
         }
 
+        // PKCE (RFC 7636): the challenge sent to the server is SHA-256(verifier); only the app knows the verifier, so a stolen
+        // authorization code is useless to an interceptor.
         // Step 2: Generate cryptographically secure PKCE Verifier & Challenge
         let codeVerifier = generateCodeVerifier()
         self.currentCodeVerifier = codeVerifier
@@ -129,6 +139,7 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
             URLQueryItem(name: "scope", value: Self.scopes),
             URLQueryItem(name: "code_challenge", value: codeChallenge),
             URLQueryItem(name: "code_challenge_method", value: "S256"),
+            // prompt=login forces the user to authenticate each time instead of reusing a silent session.
             URLQueryItem(name: "prompt", value: "login")
         ]
 
@@ -145,6 +156,7 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
             guard let self = self else { return }
             DispatchQueue.main.async { self.isAuthenticating = false }
 
+            // Both user cancel and network failure arrive as 'error'; the completion handler is always called exactly once per path.
             // Handle user cancelation or network error
             if let error = error {
                 DispatchQueue.main.async { self.authError = error.localizedDescription }
@@ -167,6 +179,7 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
         }
 
         session.presentationContextProvider = self
+        // false keeps the browser's cookies between logins (fewer password prompts) at the cost of sharing state with Safari.
         session.prefersEphemeralWebBrowserSession = false // Allows persistent cookie session for Jagex Account
         self.authSession = session
         session.start()
@@ -183,6 +196,7 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
         codeVerifier: String,
         completion: @escaping (Result<JagexTokenResponse, Error>) -> Void
     ) {
+        // Silently returns without calling completion if the URL is invalid; the constant URL makes that unreachable in practice.
         guard let tokenEndpoint = URL(string: Self.tokenURL) else { return }
 
         // Configure URLRequest for application/x-www-form-urlencoded POST
@@ -198,6 +212,8 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
             "code_verifier": codeVerifier
         ]
 
+        // Manual form encoding: .urlQueryAllowed leaves characters such as '+' and '&' unescaped, which could corrupt values containing them.
+        // Verifier, client id and the authorization code are normally URL-safe, so this works in practice.
         let postString = bodyParameters
             .map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")" }
             .joined(separator: "&")
@@ -222,9 +238,12 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
 
             do {
                 // Decode JSON token response
+                // COMPILE RISK: Foundation's JSONDecoder.decode takes 'from:' (decode(_:from:)), not 'data:'. This line is expected to fail to build
+                // when the full project is compiled with Xcode; syntax-only parsing does not detect it.
                 let tokenResponse = try JSONDecoder().decode(JagexTokenResponse.self, data: data)
 
                 // Securely store refresh token in iOS Keychain
+                // Only the refresh token is persisted; access/game tokens stay in memory with the returned struct. The save result is ignored.
                 if let refreshToken = tokenResponse.refreshToken,
                    let tokenBytes = refreshToken.data(using: .utf8) {
                     KeychainHelper.shared.save(key: "jagex_refresh_token", data: tokenBytes)
@@ -257,8 +276,10 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
     // MARK: - PKCE Cryptographic Helpers
 
     /// Generate 32 cryptographically secure random bytes converted to URL-safe Base64.
+    // 32 random bytes -> 43 base64url characters, within the 43-128 range RFC 7636 requires.
     private func generateCodeVerifier() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
+        // Return code ignored; on failure the bytes stay zero, which would make the verifier predictable.
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         return Data(bytes).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
@@ -268,6 +289,7 @@ public final class JagexOAuthManager: NSObject, ObservableObject, ASWebAuthentic
     }
 
     /// Compute the SHA-256 hash of the code verifier formatted as URL-safe Base64.
+    // S256 method: base64url(SHA-256(ASCII verifier)) without '=' padding.
     private func generateCodeChallenge(from verifier: String) -> String {
         guard let data = verifier.data(using: .ascii) else { return "" }
         var digest = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))

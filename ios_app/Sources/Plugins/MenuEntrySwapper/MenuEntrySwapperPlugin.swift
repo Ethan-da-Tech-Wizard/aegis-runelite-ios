@@ -67,6 +67,7 @@ public final class MenuEntrySwapperPlugin: Plugin {
     /// Process and re-prioritize menu entries prior to rendering.
     ///
     /// - Parameter event: The MenuEntryAddedEvent containing option, target, and opcode.
+    // Stub: the matching branch has an empty body, so no menu entries are actually reordered yet and swapTalkTo/shiftClickDrop are unused.
     private func handleMenuEntry(_ event: MenuEntryAddedEvent) {
         guard isEnabled else { return }
 

@@ -27,6 +27,7 @@ import Foundation
 
 /// Represents a fine-grained 2D coordinate inside the 104x104 local scene chunk.
 /// Each tile is 128x128 fine units (center is at +64, +64).
+// OSRS local coordinates: 128 fine units per tile inside the loaded 104x104 scene.
 public struct LocalPoint: Hashable, Codable, Sendable, CustomStringConvertible {
     /// Fine local coordinate X (0 ... 13312)
     public let x: Int
@@ -45,6 +46,7 @@ public struct LocalPoint: Hashable, Codable, Sendable, CustomStringConvertible {
 
     /// Tile X in scene coordinates (0 ... 103).
     /// Computed by dividing fine units by 128 (integer division / right-shift by 7).
+    // Integer division by the tile size gives the tile index within the scene.
     public var sceneX: Int {
         return x / 128
     }
@@ -65,6 +67,7 @@ public struct LocalPoint: Hashable, Codable, Sendable, CustomStringConvertible {
     ///   - sceneX: Scene tile X (0...103).
     ///   - sceneY: Scene tile Y (0...103).
     /// - Returns: LocalPoint positioned at the exact center of the tile.
+    // +64 puts the point at the centre of the tile rather than its corner.
     public static func fromSceneTile(sceneX: Int, sceneY: Int) -> LocalPoint {
         return LocalPoint(x: sceneX * 128 + 64, y: sceneY * 128 + 64)
     }

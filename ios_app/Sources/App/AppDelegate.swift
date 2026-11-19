@@ -24,9 +24,11 @@
 
 import UIKit
 
+// @main marks this class as the process entry point; UIKit creates it and calls the delegate methods below.
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     // The primary user interface window for the application (legacy / single-window support)
+    // Unused when scenes are active (SceneDelegate owns the real window); kept for pre-scene compatibility.
     var window: UIWindow?
 
     /// Called by iOS when the application process finishes launching and is ready to run.
@@ -40,6 +42,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         // Step 1: Log startup banner to console for developer diagnostics
+        // Diagnostics go to the console only (no logging framework).
         print("🚀 [RuneLiteMobile] Application launched successfully.")
         // Step 2: Return true indicating application initialization succeeded
         return true
@@ -60,6 +63,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Step 1: Log incoming deep link URL string
         print("🔗 [RuneLiteMobile] Received deep link callback: \(url.absoluteString)")
 
+        // NOTE: as written this method only logs the URL and returns true; it does not forward the code anywhere.
+        // ASWebAuthenticationSession (see JagexOAuthManager) normally delivers the callback itself, so this path is a fallback.
         // Step 2: In PKCE OAuth2 flow, the authorization code returned in `url` is
         // extracted and passed to JagexOAuthManager to exchange for an access token.
         return true

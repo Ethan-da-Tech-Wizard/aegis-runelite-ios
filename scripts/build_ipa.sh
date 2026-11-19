@@ -30,11 +30,13 @@
 set -euo pipefail
 
 # Step 1: Resolve absolute filesystem paths
+# BASH_SOURCE (not $0) keeps this correct when the script is sourced or invoked through a symlink such as ios_app/scripts/build_ipa.sh.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 IOS_APP_DIR="${REPO_ROOT}/ios_app"
 BUILD_DIR="${REPO_ROOT}/build"
 PAYLOAD_DIR="${BUILD_DIR}/Payload"
+# The finished archive lands in the repo root, next to ios_app/.
 OUTPUT_IPA="${REPO_ROOT}/RuneLiteMobile.ipa"
 
 echo "=== [RuneLite Mobile] Packaging Standalone iOS IPA ==="
@@ -42,12 +44,14 @@ echo "Repo Root:    ${REPO_ROOT}"
 echo "iOS App Root: ${IOS_APP_DIR}"
 
 # Step 2: Clean previous build artifacts to ensure a pristine build environment
+# DESTRUCTIVE: deletes ./build and any previous RuneLiteMobile.ipa in the repo root before rebuilding.
 rm -rf "${BUILD_DIR}" "${OUTPUT_IPA}"
 mkdir -p "${PAYLOAD_DIR}"
 
 # Step 3: Check toolchain availability
 # On macOS with Xcode Command Line Tools installed, `xcodebuild` will compile
 # the Swift source files and Metal shaders into a native arm64 Mach-O binary.
+# Real build only where Xcode exists. CODE_SIGNING_ALLOWED=NO produces an unsigned .app; sideloading tools re-sign it later.
 if command -v xcodebuild >/dev/null 2>&1; then
     echo "🔨 Building with Xcode (xcodebuild)..."
     xcodebuild \
@@ -59,9 +63,12 @@ if command -v xcodebuild >/dev/null 2>&1; then
         CODE_SIGNING_ALLOWED=NO \
         clean build
 
+    # Standard derived-data output location for a Release build against the iphoneos SDK.
     APP_PATH="${BUILD_DIR}/DerivedData/Build/Products/Release-iphoneos/RuneLiteMobile.app"
     cp -R "${APP_PATH}" "${PAYLOAD_DIR}/"
 else
+    # Fallback produces a PLACEHOLDER bundle (plists plus an empty executable). It is useful for checking structure
+    # # but is not an installable app.
     # In Linux CI/CD environments where Xcode is not available, assemble
     # a mock bundle structure to validate packaging rules and plists.
     echo "⚠️ xcodebuild not found in host environment (Linux/non-macOS)."
@@ -76,6 +83,7 @@ fi
 
 # Step 4: Compress the Payload directory into standard .ipa format
 echo "📦 Compressing into IPA archive: ${OUTPUT_IPA}..."
+# zip must run from build/ so the archive's top-level entry is 'Payload/' as the IPA format requires.
 cd "${BUILD_DIR}"
 zip -qr "${OUTPUT_IPA}" Payload
 

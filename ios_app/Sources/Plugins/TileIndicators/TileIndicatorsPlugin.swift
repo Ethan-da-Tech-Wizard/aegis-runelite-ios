@@ -48,6 +48,7 @@ public final class TileIndicatorsPlugin: Plugin {
     public var highlightHoverTile: Bool = true
 
     // High-visibility semi-transparent colors
+    // Colours are stored as CGColor with partial alpha so the ground stays visible beneath the highlight.
     public var destinationColor: CGColor = UIColor.systemRed.withAlphaComponent(0.6).cgColor
     public var currentTileColor: CGColor = UIColor.systemCyan.withAlphaComponent(0.4).cgColor
     public var hoverColor: CGColor = UIColor.systemYellow.withAlphaComponent(0.4).cgColor
@@ -73,6 +74,7 @@ public final class TileIndicatorsPlugin: Plugin {
         let gameState = context.gameState
         let viewport = context.viewportSize
 
+        // Each stage projects the tile's four corners with Perspective.getCanvasTilePoly and skips drawing if any corner is clipped.
         // Stage 1: Render Destination Tile Highlight
         if highlightDestination, let dest = gameState.destinationTile {
             if let local = dest.toLocalPoint(baseX: gameState.baseTileX, baseY: gameState.baseTileY) {

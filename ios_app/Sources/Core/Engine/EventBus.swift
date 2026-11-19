@@ -31,6 +31,7 @@ import Foundation
 // MARK: - Event Definitions
 
 /// Fired every 600ms when the Old School RuneScape engine tick increments.
+// Event payloads are small immutable value types (Sendable) so handlers on any thread can read them safely.
 public struct GameTickEvent: Sendable {
     public let tickCount: Int
     public init(tickCount: Int) {
@@ -78,6 +79,8 @@ public struct ItemDespawnedEvent: Sendable {
 }
 
 /// Fired when a right-click or tap context menu entry is registered.
+// isConsumed is a var so a handler could mark the entry handled, but publish() passes the event BY VALUE to every handler,
+// so a change made by one handler is not visible to the others or to the publisher.
 public struct MenuEntryAddedEvent: Sendable {
     public let option: String
     public let target: String
@@ -115,6 +118,7 @@ public final class EventBus {
     public static let shared = EventBus()
 
     private let lock = NSLock()
+    // Handlers are stored type-erased as (Any) -> Void, keyed by observer identity; one observer may hold several handlers.
     private var subscribers: [ObjectIdentifier: [(Any) -> Void]] = [:]
 
     private init() {}
@@ -125,6 +129,7 @@ public final class EventBus {
     ///   - observer: The subscribing object instance (used as lifecycle key).
     ///   - eventType: The type of event to listen for (e.g. GameTickEvent.self).
     ///   - handler: Closure invoked when a matching event is published.
+    // Each handler is wrapped in a closure that downcasts to T, so a handler only runs for events of its own type.
     public func subscribe<T>(_ observer: AnyObject, eventType: T.Type, handler: @escaping (T) -> Void) {
         lock.lock()
         defer { lock.unlock() }
@@ -138,6 +143,7 @@ public final class EventBus {
             }
         }
 
+        // Append to the observer's existing list or start a new one.
         if subscribers[id] != nil {
             subscribers[id]?.append(wrapper)
         } else {
@@ -148,6 +154,7 @@ public final class EventBus {
     /// Unsubscribe an observer from all events (typically called in plugin deinit or shutDown).
     ///
     /// - Parameter observer: The object to remove from the subscriber dictionary.
+    // Removes ALL handlers registered by this observer; there is no per-event-type unsubscribe.
     public func unsubscribe(_ observer: AnyObject) {
         lock.lock()
         defer { lock.unlock() }
@@ -160,6 +167,8 @@ public final class EventBus {
     /// - Parameter event: The event instance being broadcast.
     public func publish<T>(_ event: T) {
         lock.lock()
+        // Copy under the lock, call outside it: a handler may itself subscribe or publish without deadlocking.
+        // Every handler for every event type is invoked on the publisher's thread, and each one filters by type.
         // Extract snapshot of handlers to prevent deadlocks during callback execution
         let handlers = subscribers.values.flatMap { $0 }
         lock.unlock()

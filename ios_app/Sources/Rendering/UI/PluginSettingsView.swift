@@ -30,6 +30,7 @@ import SwiftUI
 
 /// SwiftUI configuration panel for managing RuneLite plugins & Jagex compliance status.
 public struct PluginSettingsView: View {
+    // Observed singletons: the view refreshes when plugins or auth state change.
     @ObservedObject var pluginManager = PluginManager.shared
     @ObservedObject var authManager = JagexOAuthManager.shared
     @State private var isShowingPluginHub: Bool = false
@@ -96,6 +97,7 @@ public struct PluginSettingsView: View {
                         Image(systemName: "shield.lefthalf.filled.badge.checkmark")
                             .foregroundColor(.green)
                         VStack(alignment: .leading) {
+                            // Static label, not computed from any check.
                             Text("Jagex Rule Conformance: 100%")
                                 .font(.subheadline)
                                 .bold()
@@ -133,6 +135,7 @@ public struct PluginSettingsView: View {
 
                 // Section 4: Bundled Native Plugin Toggles
                 Section(header: Text("Bundled Core Plugins")) {
+                    // Each toggle writes through PluginManager so the choice is persisted and startUp/shutDown run.
                     ForEach(pluginManager.registeredPlugins, id: \.id) { plugin in
                         Toggle(isOn: Binding(
                             get: { plugin.isEnabled },

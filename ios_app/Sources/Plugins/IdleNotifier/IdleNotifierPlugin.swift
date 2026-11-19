@@ -44,6 +44,7 @@ public final class IdleNotifierPlugin: Plugin {
 
     // Threshold configurations
     public var alertOnIdle: Bool = true
+    // Low HP/Prayer settings are declared for the UI but checkIdleState() does not use them yet; only idle alerts are implemented.
     public var alertOnLowHp: Bool = true
     public var lowHpThreshold: Int = 20
     public var alertOnLowPrayer: Bool = true
@@ -71,6 +72,7 @@ public final class IdleNotifierPlugin: Plugin {
     }
 
     /// Request Apple UserNotification permissions for alert banners, sounds, and badges.
+    // Asks for permission at startUp(); the denied case is silently ignored.
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
@@ -86,9 +88,11 @@ public final class IdleNotifierPlugin: Plugin {
         let player = GameState.shared.localPlayer
 
         // Idle animation detection (Standard standing idle is -1 or 808)
+        // Animation -1 (none) and 808 (idle stand) are treated as 'doing nothing'.
         if player.currentAnimation == -1 || player.currentAnimation == 808 {
             idleTickCount += 1
             // 3 ticks (1.8s) of uninterrupted idle triggers alert
+            // Fires once when the counter first reaches 3 (1.8 s); it will not re-fire during the same idle spell.
             if idleTickCount == 3 && alertOnIdle {
                 triggerNotification(title: "RuneLite Alert", body: "Your character is now idle!")
             }
@@ -105,6 +109,7 @@ public final class IdleNotifierPlugin: Plugin {
     ///   - body: Alert message body.
     private func triggerNotification(title: String, body: String) {
         // Enforce 10-second alert cooldown to avoid spamming the user
+        // Rate limit shared by all notification types.
         guard Date().timeIntervalSince(lastAlertDate) > 10.0 else { return }
         lastAlertDate = Date()
 

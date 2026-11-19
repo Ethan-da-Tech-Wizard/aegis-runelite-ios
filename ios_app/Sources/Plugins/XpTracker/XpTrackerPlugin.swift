@@ -31,6 +31,7 @@ import CoreGraphics
 import UIKit
 
 /// Individual skill tracking session recording baseline and progression metrics.
+// One tracking window per skill, starting at the first XP drop seen after startUp().
 public struct SkillTrackerSession: Sendable {
     public let skillName: String
     public let startXp: Int
@@ -44,6 +45,7 @@ public struct SkillTrackerSession: Sendable {
     }
 
     /// Projected experience per hour based on elapsed session duration.
+    // Extrapolates linearly; elapsed time is floored at 1 s so the first drop does not divide by ~0 (and then reports a huge rate).
     public var xpPerHour: Int {
         let elapsed = max(1.0, lastUpdated.timeIntervalSince(startTime))
         return Int(Double(xpGained) / (elapsed / 3600.0))
@@ -58,6 +60,7 @@ public final class XpTrackerPlugin: Plugin {
     public var isEnabled: Bool = true
 
     private var sessions: [String: SkillTrackerSession] = [:]
+    // Event handlers and the render pass can run on different threads.
     private let lock = NSLock()
 
     public init() {}
@@ -89,6 +92,7 @@ public final class XpTrackerPlugin: Plugin {
         } else {
             sessions[event.skillName] = SkillTrackerSession(
                 skillName: event.skillName,
+                // Reconstructs the XP before the first observed gain.
                 startXp: max(0, event.experience - event.xpGained),
                 currentXp: event.experience,
                 startTime: now,
@@ -106,6 +110,7 @@ public final class XpTrackerPlugin: Plugin {
 
         lock.lock()
         // Display the top 3 actively trained skills with non-zero XP gains
+        // Dictionary order is arbitrary, so which three skills show can vary between frames when more than three are active.
         let activeSessions = Array(sessions.values.filter { $0.xpGained > 0 }.prefix(3))
         lock.unlock()
 

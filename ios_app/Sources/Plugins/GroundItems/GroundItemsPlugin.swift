@@ -43,6 +43,7 @@ public final class GroundItemsPlugin: Plugin {
     public var showGePrice: Bool = true
     public var showHaPrice: Bool = false
     public var showDespawnTimer: Bool = true
+    // Declared setting; the rendering below colours by Item.valueTier and does not currently use this threshold, showHaPrice or showDespawnTimer.
     public var highlightValueThreshold: Int = 10_000
 
     public init() {}
@@ -104,6 +105,7 @@ public final class GroundItemsPlugin: Plugin {
             }
 
             // Step 6: Calculate dimensions for the dark background bounding box
+            // Width estimate of 7 points per character (no real text measurement).
             let textWidth: CGFloat = CGFloat(labelText.count * 7 + 12)
             let boxRect = CGRect(x: screenPos.x - textWidth / 2, y: screenPos.y - 12, width: textWidth, height: 20)
 
@@ -135,6 +137,7 @@ public final class GroundItemsPlugin: Plugin {
     }
 
     /// Format integer GP amounts with K (thousands) or M (millions) suffixes.
+    // OSRS-style abbreviation; values below 10,000 are shown exactly.
     private func formatGp(_ amount: Int) -> String {
         if amount >= 10_000_000 {
             return "\(amount / 1_000_000)M"

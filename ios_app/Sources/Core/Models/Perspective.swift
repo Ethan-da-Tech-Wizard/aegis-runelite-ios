@@ -45,11 +45,13 @@ import Foundation
 import CoreGraphics
 
 /// Perspective projection engine: converts 3D OSRS scene points into 2D Apple Metal screen coordinates.
+// Port of RuneLite's Perspective class: fixed-point (integer) 3D-to-screen projection using OSRS conventions.
 public final class Perspective {
     public static let unitTileSize: Int = 128
     public static let sceneSize: Int = 104
 
     // Trigonometric sine lookup table (2048 angular units per circle, scaled by 65,536)
+    // 2048 steps per revolution; the 65,536 scale gives 16 fractional bits, undone with >> 16 below.
     public static let sinTable: [Int] = {
         var table = [Int](repeating: 0, count: 2048)
         for i in 0..<2048 {
@@ -97,6 +99,7 @@ public final class Perspective {
         let dz = z - cameraZ
 
         // Step 2: Constrain angles to 2048-element table using bitwise AND mask
+        // & 2047 wraps any angle into the table (valid because 2048 is a power of two, including for negative inputs in two's complement).
         let yawIndex = cameraYaw & 2047
         let pitchIndex = cameraPitch & 2047
 
@@ -114,6 +117,7 @@ public final class Perspective {
         let y2 = (y1 * cosPitch + dz * sinPitch) >> 16
 
         // Step 5: Near-plane clipping: object must be in front of the camera (y2 >= 50)
+        // Near clip: anything closer than 50 units to the camera plane is dropped to avoid divide-by-near-zero and huge projections.
         guard y2 >= 50 else { return nil }
 
         // Step 6: Viewport center calculation
@@ -121,6 +125,7 @@ public final class Perspective {
         let halfHeight = viewportSize.height / 2.0
 
         // Step 7: Perspective division — scale coordinates inversely by distance y2
+        // Perspective divide: screen offset = (lateral or vertical offset * zoom) / depth, centred on the viewport.
         let screenX = halfWidth + (CGFloat(x1 * zoom) / CGFloat(y2))
         let screenY = halfHeight + (CGFloat(z2 * zoom) / CGFloat(y2))
 
@@ -144,6 +149,7 @@ public final class Perspective {
     ///   - zoom: Viewport zoom scale.
     ///   - viewportSize: Screen size in points.
     /// - Returns: Array of 4 CGPoints forming the quadrilateral outline on screen.
+    // Returns nil if ANY of the four corners is clipped, so tiles partly off-screen or behind the camera disappear entirely.
     public static func getCanvasTilePoly(
         localPoint: LocalPoint,
         tileHeight: Int,
