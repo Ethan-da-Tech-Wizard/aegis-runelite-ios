@@ -7,8 +7,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RuneLite">
   <meta name="theme-color" content="#121212">
+  <!-- Standalone single-file client: HTML, CSS and JavaScript in one document with no external requests, so it can run offline as an iOS web clip. -->
+  <!-- It is a 2D canvas SIMULATION of an OSRS-style scene and RuneLite-style overlays; it does not connect to the real game. -->
   <title>RuneLite Mobile (Standalone iOS Client)</title>
   <style>
+    /* Design tokens: OSRS-inspired palette (stone/brown UI chrome, gold, cyan/green accents) shared by the rules below. */
     :root {
       --osrs-bg: #1c1815;
       --osrs-stone: #2e2824;
@@ -23,6 +26,8 @@
       --rl-purple: #9c27b0;
     }
 
+    /* Global reset. user-select/touch-callout/tap-highlight are disabled and touch-action is none so the page behaves like a game */
+    /* surface (no text selection, no long-press link menu, no browser pan/zoom); the app handles every gesture itself. */
     * {
       box-sizing: border-box;
       -webkit-touch-callout: none;
@@ -34,6 +39,7 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* position: fixed + overflow hidden stops iOS rubber-band scrolling when the web clip runs full screen. */
     html, body {
       width: 100%;
       height: 100%;
@@ -44,6 +50,7 @@
       position: fixed;
     }
 
+    /* Full-viewport 2D canvas; all world drawing happens here, with HTML HUD elements layered above. */
     #gameCanvas {
       position: absolute;
       top: 0;
@@ -55,6 +62,7 @@
     }
 
     /* OSRS Top Bar & Minimap */
+    /* HUD overlay containers use pointer-events rules so taps on empty areas fall through to the world (see touchstart's closest() check). */
     #topBar {
       position: absolute;
       top: env(safe-area-inset-top, 8px);
@@ -190,6 +198,7 @@
       pointer-events: none;
     }
 
+    /* Side panels are hidden by default; the .visible class (toggled by the stone tabs in JS) shows one at a time. */
     .stone-panel {
       pointer-events: auto;
       width: 210px;
@@ -219,6 +228,7 @@
     }
 
     /* Inventory Grid: 4 x 7 = 28 slots */
+    /* 4 columns x 7 rows = 28 slots, like the OSRS inventory. */
     .inventory-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -346,6 +356,7 @@
       border-radius: 50%;
     }
 
+    /* Pure-CSS toggle switch: the hidden checkbox state drives the slider's colour and knob position. */
     input:checked + .slider {
       background-color: #238636;
     }
@@ -374,6 +385,7 @@
     }
 
     /* Plugin Hub Full Modal */
+    /* Full-screen modal for the (simulated) plugin hub; hidden until .visible is added. */
     #pluginHubModal {
       position: absolute;
       top: 0;
@@ -542,6 +554,7 @@
     }
 
     /* OSRS Right Click Context Menu (Triggered by Long-Press) */
+    /* Long-press context menu; positioned in JS and shown by switching display to flex. */
     #osrsContextMenu {
       position: absolute;
       display: none;
@@ -654,6 +667,7 @@
       animation: floatUp 1.2s forwards ease-out;
     }
 
+    /* Floating text rises and fades; the element is removed by JS after 1.2 s. */
     @keyframes floatUp {
       0% { opacity: 0; transform: translateY(10px) scale(0.8); }
       20% { opacity: 1; transform: translateY(0) scale(1.05); }
@@ -685,6 +699,7 @@
       animation: crosshairPop 0.35s forwards;
     }
 
+    /* Click marker pops in and fades; removed by JS after 350 ms. */
     @keyframes crosshairPop {
       0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
       50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.9; }
@@ -695,6 +710,7 @@
 <body>
 
   <!-- Fullscreen 3D Isometric Game Canvas -->
+  <!-- World layer: a single canvas drawn by render() every animation frame. -->
   <canvas id="gameCanvas"></canvas>
 
   <!-- Status Bars (Hitpoints & Prayer) -->
@@ -820,12 +836,14 @@
      * Pure tap-to-move, long-press right-click, two-finger camera rotation/zoom.
      * Zero servers, zero external data, 100% offline standalone.
      */
+    // Cached DOM handles for the world canvas and the minimap canvas.
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const minimapCanvas = document.getElementById("minimapCanvas");
     const mctx = minimapCanvas.getContext("2d");
 
     // High-DPI Canvas Resizing
+    // Resizing the canvas (assigning width) resets its transform, so ctx.scale(dpr) is re-applied each time; drawing code then uses CSS pixels.
     function resizeCanvas() {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = window.innerWidth * dpr;
@@ -836,6 +854,7 @@
     resizeCanvas();
 
     // Game Simulation State
+    // Entire game model in one object. All values are fake demo data (a player named 'Ethan', four NPCs, four ground items); coordinates are tile units.
     const state = {
       player: {
         x: 15,
@@ -851,6 +870,7 @@
         maxPrayer: 99,
         activeOverhead: null, // "protect_melee", etc.
       },
+      // Camera: yaw in radians, pitch is a vertical squash factor for the isometric look (0.35-0.85), zoom is pixels per tile.
       camera: {
         angle: 0,      // Yaw rotation in radians
         pitch: 0.55,   // Pitch tilt
@@ -862,6 +882,7 @@
         { id: 3, name: "Grand Exchange Clerk", level: 0, x: 15, y: 11, hp: 10, maxHp: 10, color: "#ab47bc" },
         { id: 4, name: "Duck", level: 1, x: 20, y: 19, hp: 3, maxHp: 3, color: "#ffeb3b" },
       ],
+      // tier picks the label colour (white < orange < purple) and 'beam' draws a lootbeam; value is shown with toLocaleString().
       groundItems: [
         { id: 101, name: "Rune scimitar", value: 15200, tier: "purple", x: 14, y: 16 },
         { id: 102, name: "Abyssal whip", value: 1450000, tier: "beam", x: 16, y: 14 },
@@ -898,6 +919,7 @@
       ]
     };
 
+    // Build the 28 inventory slots once at load; empty slots are plain boxes. Item data is static, so using innerHTML here is safe.
     // Populate Inventory UI
     const invGrid = document.getElementById("inventoryGrid");
     for (let i = 0; i < 28; i++) {
@@ -925,6 +947,7 @@
       prayerGrid.appendChild(slot);
     });
 
+    // Only one overhead prayer can be active at a time; non-overhead prayers (Piety, Rigour...) toggle independently. Purely visual: no prayer drain.
     function togglePrayer(p) {
       p.active = !p.active;
       const el = document.getElementById(`prayer_${p.id}`);
@@ -949,6 +972,7 @@
 
     // Populate Plugin Toggle UI
     const pluginList = document.getElementById("pluginList");
+    // Maps state.plugins keys to display names; each row's checkbox writes back to state.plugins, which render() consults every frame.
     const pluginMeta = [
       { key: "tileIndicators", name: "Destination Tile Indicator" },
       { key: "trueTile", name: "True Tile Indicator" },
@@ -983,6 +1007,7 @@
     const hubPluginList = document.getElementById("hubPluginList");
     const hubCategories = document.getElementById("hubCategories");
 
+    // Hard-coded sample catalog for the demo hub. Nothing is downloaded and installing only adds a toggle row (and a message).
     const officialHubCatalog = [
       {
         id: "loot-tracker",
@@ -1033,6 +1058,7 @@
 
     let currentHubCategory = "all";
 
+    // Re-renders the whole list on every filter/search/install change; category and search are combined with AND.
     function renderHubPlugins() {
       hubPluginList.innerHTML = "";
       const search = (hubSearchInput.value || "").toLowerCase();
@@ -1060,6 +1086,7 @@
         `;
 
         const btn = card.querySelector(".hub-install-btn");
+        // Install button toggles the 'installed' flag, adding or removing a '[Hub]' row in the plugin list. The new row's checkbox has no handler.
         btn.onclick = () => {
           plugin.installed = !plugin.installed;
           if (plugin.installed) {
@@ -1108,6 +1135,7 @@
       };
     });
 
+    // Tapping the active tab closes its panel; tapping another switches. At most one panel is visible.
     // Side Stone Tab Switching
     document.querySelectorAll(".stone-tab").forEach(tab => {
       tab.onclick = () => {
@@ -1127,6 +1155,7 @@
     });
 
     // Floating XP Drop Animation
+    // Used for all on-screen notifications, not just XP; suppressed when the XP Drops plugin is off.
     function showXpDrop(text) {
       if (!state.plugins.xpDrops) return;
       const container = document.getElementById("xpDropContainer");
@@ -1148,6 +1177,7 @@
     }
 
     // World to Screen Projection
+    // Isometric-style projection: rotate the offset from the player by the camera angle, scale by zoom, squash Y by pitch. The player stays at screen centre.
     function worldToScreen(worldX, worldY) {
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
@@ -1167,6 +1197,7 @@
     }
 
     // Screen to World Raycast Inverse
+    // Exact inverse of worldToScreen (un-squash Y, rotate by -angle), rounded to the nearest tile for tap targets.
     function screenToWorld(screenX, screenY) {
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
@@ -1185,6 +1216,7 @@
     // ==========================================
     // TRUE OSRS TOUCH GESTURE CONTROLS (DIRECT TOUCH & CAMERA ORBIT)
     // ==========================================
+    // Gesture bookkeeping: tap vs long press (350 ms) vs two-finger camera orbit/zoom, mirroring the native iOS pipeline's thresholds.
     let touchStartTime = 0;
     let longPressTimer = null;
     let initialTouchPos = { x: 0, y: 0 };
@@ -1192,6 +1224,7 @@
     let isTwoFingerDragging = false;
     let lastTwoFingerCenter = { x: 0, y: 0 };
 
+    // Touches on HUD panels are ignored here so button taps don't also move the player. { passive: false } is needed because touchmove calls preventDefault().
     window.addEventListener("touchstart", (e) => {
       // Don't trigger game tap if touching HUD
       if (e.target.closest("#topBar, #sideStonesContainer, #statusBars, #osrsContextMenu")) {
@@ -1205,6 +1238,7 @@
         touchStartTime = Date.now();
 
         // Start 350ms long-press timer for Right-Click Context Menu
+        // If the finger is still down (and has not moved > 10 px) after 350 ms, open the context menu instead of treating it as a tap.
         longPressTimer = setTimeout(() => {
           triggerContextMenu(touch.clientX, touch.clientY);
         }, 350);
@@ -1222,6 +1256,7 @@
       }
     }, { passive: false });
 
+    // Single finger: moving > 10 px cancels the long press. Two fingers: pinch distance changes zoom, midpoint movement rotates (x) and tilts (y) the camera.
     window.addEventListener("touchmove", (e) => {
       if (e.touches.length === 1) {
         const touch = e.touches[0];
@@ -1237,6 +1272,7 @@
         // 1. Pinch to Zoom
         const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
         const zoomDelta = (dist - initialTwoTouchDist) * 0.15;
+        // Zoom clamped to 18-65 px per tile.
         state.camera.zoom = Math.max(18, Math.min(65, state.camera.zoom + zoomDelta));
         initialTwoTouchDist = dist;
 
@@ -1249,6 +1285,7 @@
         const dy = center.y - lastTwoFingerCenter.y;
 
         state.camera.angle += dx * 0.01;
+        // Pitch clamped so the view never flattens or looks straight down.
         state.camera.pitch = Math.max(0.35, Math.min(0.85, state.camera.pitch - dy * 0.003));
         lastTwoFingerCenter = center;
 
@@ -1257,6 +1294,7 @@
       }
     }, { passive: false });
 
+    // A tap = all fingers lifted in under 350 ms without a two-finger gesture. Tapping an NPC walks to it (red marker); otherwise walks to the tile (yellow).
     window.addEventListener("touchend", (e) => {
       clearTimeout(longPressTimer);
 
@@ -1303,6 +1341,7 @@
     const contextMenu = document.getElementById("osrsContextMenu");
     const menuOptions = document.getElementById("contextMenuOptions");
 
+    // Builds the option list from what is under the finger (NPC, ground item), then always adds Walk here and Cancel, like OSRS. Hit radius 1.4 tiles for NPCs, 1.0 for items.
     function triggerContextMenu(clientX, clientY) {
       const world = screenToWorld(clientX, clientY);
       menuOptions.innerHTML = "";
@@ -1344,6 +1383,7 @@
       options.forEach(opt => {
         const item = document.createElement("div");
         item.className = `menu-option ${opt.isCancel ? 'cancel' : ''}`;
+        // Option text comes from the static state above (not user input), so template-string HTML is acceptable here.
         item.innerHTML = `<span class="verb">${opt.verb}</span> <span class="noun">${opt.noun}</span>`;
         item.onclick = (ev) => {
           ev.stopPropagation();
@@ -1354,6 +1394,7 @@
       });
 
       // Position Context Menu
+      // Keep the menu fully on-screen by clamping its top-left corner.
       const menuWidth = 160;
       const menuHeight = options.length * 30 + 30;
       const x = Math.min(clientX, window.innerWidth - menuWidth - 10);
@@ -1371,8 +1412,10 @@
     // ==========================================
     // GAME ENGINE & RUNELITE PLUGIN RENDERING
     // ==========================================
+    // Game ticks are driven off wall-clock time inside the frame loop (not setInterval).
     let lastTick = Date.now();
 
+    // requestAnimationFrame loop: fires onGameTick() every 600 ms, eases the visual player position toward its destination every frame, then draws.
     function gameLoop() {
       requestAnimationFrame(gameLoop);
 
@@ -1384,6 +1427,7 @@
       }
 
       // Smooth Movement Interpolation
+      // Fraction of the remaining distance covered per frame: exponential ease-out, so movement is visually smooth but frame-rate dependent.
       const speed = state.player.running ? 0.12 : 0.06;
       const dist = Math.hypot(state.player.destX - state.player.x, state.player.destY - state.player.y);
       if (dist > 0.05) {
@@ -1395,6 +1439,7 @@
       renderMinimap();
     }
 
+    // The 'true tile' moves in whole tiles at tick rate (1 walking, 2 running), like the real OSRS server position, while the drawn player glides smoothly.
     function onGameTick() {
       // Step True Tile to destination
       if (Math.hypot(state.player.destX - state.player.trueX, state.player.destY - state.player.trueY) > 0.5) {
@@ -1408,11 +1453,13 @@
       }
     }
 
+    // Draw order (back to front): ground grid, tile indicators, ground items, NPCs, player. Plugins are only drawn when enabled in state.plugins.
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // 1. Draw Ground Tile Grid
       const zoom = state.camera.zoom;
+      // Draw a 29 x 29 tile window centred on the player instead of an unbounded world.
       const viewRange = 14;
 
       for (let dx = -viewRange; dx <= viewRange; dx++) {
@@ -1433,6 +1480,7 @@
           ctx.lineTo(p4.x, p4.y);
           ctx.closePath();
 
+          // Checkerboard shading keeps tile edges visible when the camera rotates.
           const isDark = (tileX + tileY) % 2 === 0;
           ctx.fillStyle = isDark ? "#28341f" : "#2e3b24"; // Authentic Lumbridge grass
           ctx.fill();
@@ -1457,6 +1505,7 @@
           const pt = worldToScreen(item.x + 0.5, item.y + 0.5);
 
           // Loot Beam for high value items
+          // Lootbeam: a vertical gradient column above high-value drops.
           if (item.tier === "beam") {
             const grad = ctx.createLinearGradient(pt.x, pt.y, pt.x, pt.y - 120);
             grad.addColorStop(0, "rgba(255, 235, 59, 0.7)");
@@ -1545,10 +1594,12 @@
       ctx.fillStyle = "#ffffff";
       ctx.shadowColor = "#000000";
       ctx.shadowBlur = 4;
+      // Placeholder player name.
       ctx.fillText("Ethan", playerPt.x, playerPt.y - 26);
       ctx.shadowBlur = 0;
     }
 
+    // Fill and stroke the four projected corners of one tile; reused for destination, true tile and NPC highlights.
     function drawTileOutline(tileX, tileY, strokeColor, lineWidth = 2, fillColor = null) {
       const p1 = worldToScreen(tileX, tileY);
       const p2 = worldToScreen(tileX + 1, tileY);
@@ -1572,6 +1623,7 @@
     }
 
     // Minimap Rendering
+    // Minimap is rotated by -camera angle so up always matches the main view; 4 px per tile, centred on the player.
     function renderMinimap() {
       mctx.clearRect(0, 0, 110, 110);
       mctx.save();
@@ -1605,6 +1657,7 @@
       mctx.restore();
     }
 
+    // Kick off the animation loop (schedules itself with requestAnimationFrame).
     // Start Engine Loop
     gameLoop();
   </script>

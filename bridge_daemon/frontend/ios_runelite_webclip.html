@@ -6,8 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RuneLite Mobile">
+  <!-- Web client served by bridge_daemon/server.py. It draws a mock scene locally and, when loaded over http(s), syncs with the daemon: -->
+  <!-- POST /api/touch for taps, POST /api/toggle for plugins, and GET /api/state every 600 ms. Opened from file:// it runs fully offline. -->
   <title>RuneLite Mobile Bridge (iOS Web Clip)</title>
   <style>
+    /* Reset plus iOS game-surface settings: no text selection or long-press callouts. */
     * {
       box-sizing: border-box;
       -webkit-touch-callout: none;
@@ -16,6 +19,7 @@
       margin: 0;
       padding: 0;
     }
+    /* Column flex layout: a fixed 44 px header above a viewport that fills the remaining height; no page scrolling. */
     body, html {
       width: 100%;
       height: 100%;
@@ -157,6 +161,7 @@
       width: 36px;
       height: 20px;
     }
+    /* The real checkbox is hidden (opacity 0) and the .slider span draws the switch; clicking the label still toggles the input. */
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute;
@@ -175,6 +180,7 @@
       transition: .2s;
       border-radius: 50%;
     }
+    /* Checked state recolours the slider and slides the knob 16 px. */
     input:checked + .slider { background-color: #238636; }
     input:checked + .slider:before { transform: translateX(16px); }
   </style>
@@ -192,6 +198,7 @@
     <button class="v-btn" style="padding:4px 8px;" onclick="toggleDrawer()">⚙️ Plugins</button>
   </div>
 
+  <!-- The 800x500 canvas is CSS-scaled; touch coordinates are rescaled back to canvas pixels in the handlers below. -->
   <div id="viewport-container">
     <canvas id="gameCanvas" width="800" height="500"></canvas>
 
@@ -220,11 +227,14 @@
   </div>
 
   <script>
+    // Canvas, 2D context and drawer state. Everything below is plain browser JavaScript (no libraries, no build step).
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     let drawerOpen = false;
 
     // Default plugins state (synchronized with reverse-engineered RuneLite architecture)
+    // Local plugin list that drives both the drawer UI and which mock overlays render. The ids match the daemon's plugin keys only partly
+    // (for example 'agility' and 'prayer' here vs AgilityPlugin/PrayerPlugin there), so toggles may not map one-to-one on the server.
     const plugins = [
       { id: 'agility', name: 'Agility', desc: 'Highlight obstacles and clickboxes', active: true },
       { id: 'ground_items', name: 'Ground Items', desc: 'Display item drops with GE prices', active: true },
@@ -239,6 +249,7 @@
       document.getElementById('pluginDrawer').classList.toggle('open', drawerOpen);
     }
 
+    // Rebuild the drawer rows from the plugin list. innerHTML is built from the static list above, not from server data.
     function renderPluginDrawer() {
       const container = document.getElementById('pluginList');
       container.innerHTML = plugins.map(p => `
@@ -255,6 +266,7 @@
       `).join('');
     }
 
+    // Flip locally, then tell the daemon only when served over http(s); network errors are swallowed so the UI never breaks offline.
     function togglePlugin(id) {
       const p = plugins.find(x => x.id === id);
       if (p) {
@@ -270,6 +282,8 @@
     }
 
     // Touch Interaction (Translates touch to RuneLite mouse events)
+    // Convert the touch's page position into canvas pixel coordinates (the canvas is displayed at a different size than its 800x500 buffer).
+    // preventDefault stops the browser from also synthesising a mouse event, which would send the tap twice.
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
@@ -279,6 +293,7 @@
       handleTap(x, y);
     }, { passive: false });
 
+    // Same conversion for mouse clicks so the page works on desktop browsers.
     canvas.addEventListener('mousedown', (e) => {
       const rect = canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
@@ -287,8 +302,10 @@
     });
 
     let clickMarker = null;
+    // Overlays received from the daemon. NOTE: they are stored here but renderFrame() does not draw them; the visible overlays are hard-coded mock shapes.
     let liveOverlays = [];
 
+    // Show a ripple immediately, then report the tap. Each physical tap produces one request (1:1 input).
     function handleTap(x, y) {
       clickMarker = { x, y, radius: 4, alpha: 1.0 };
       if (window.location.protocol.startsWith('http')) {
@@ -300,6 +317,7 @@
       }
     }
 
+    // Poll the daemon once per 600 ms game tick. Each poll also advances the daemon's tick counter (see server.py's /api/state).
     // Periodic 600ms sync with Headless Daemon (1 OSRS game tick)
     if (window.location.protocol.startsWith('http')) {
       setInterval(() => {
@@ -312,6 +330,7 @@
       }, 600);
     }
 
+    // Placeholder: these quick buttons only log to the console and send nothing to the daemon.
     function sendQuickAction(action) {
       console.log('Dispatched quick action:', action);
     }
@@ -322,6 +341,7 @@
 
     // Continuous 60 FPS Render Loop (Simulating OSRS Canvas + RuneLite Plugin Overlays)
     let tick = 0;
+    // Runs every animation frame: draw background grid, a fixed player marker and any enabled mock overlays, then the tap ripple.
     function renderFrame() {
       tick++;
 
@@ -345,6 +365,7 @@
         ctx.stroke();
       }
 
+      // Hard-coded demo values (position, name, level); not from the daemon.
       // 2. Player marker in center
       ctx.fillStyle = '#60a5fa';
       ctx.beginPath();
@@ -386,6 +407,7 @@
       // Prayer Flicking Overlay Bar
       if (plugins.find(p => p.id === 'prayer').active) {
         const barWidth = 140;
+        // Animated fill that cycles every ~34 frames, purely cosmetic.
         const progress = ((tick * 3) % 100) / 100;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(630, 20, barWidth, 16);
@@ -413,6 +435,7 @@
       requestAnimationFrame(renderFrame);
     }
 
+    // Initial setup: build the drawer once, then start the render loop.
     renderPluginDrawer();
     requestAnimationFrame(renderFrame);
   </script>
