@@ -548,19 +548,24 @@ def classify_process_role(
     explicit_game_pids: Optional[Set[int]] = None,
 ) -> str:
     """Classify a process into CRITICAL_SYSTEM, FOREGROUND_GAME, AI_INFERENCE, or BACKGROUND_WORK."""
+
+    # Explicit PIDs from the caller win over every name heuristic: the user knows which process is the game, and a wrong guess could get the game's memory trimmed.
     if explicit_game_pids and pid in explicit_game_pids:
         return ROLE_FOREGROUND_GAME
 
     lower_name = name.lower().strip()
     lower_cmd = cmdline.lower().strip()
 
+    # Checked before AI and game hints so compositor, init and similar processes are never classified as something that may be trimmed or re-pinned.
     if lower_name in CRITICAL_SYSTEM_NAMES:
         return ROLE_CRITICAL_SYSTEM
 
+    # Substring match on both name and command line, because inference servers are often launched as "python server.py" and only the command line reveals them.
     for ai_name in AI_INFERENCE_NAMES:
         if ai_name in lower_name or ai_name in lower_cmd:
             return ROLE_AI_INFERENCE
 
+    # Game detection is heuristic and checked last on purpose; anything unmatched falls through to BACKGROUND_WORK, the only role besides AI whose memory the governor may advise.
     for game_hint in GAME_PROCESS_HINTS:
         if game_hint in lower_name or game_hint in lower_cmd:
             return ROLE_FOREGROUND_GAME
@@ -581,11 +586,15 @@ def probe_running_processes(
     reclaimable memory.
     """
     results: List[ProcessWorkingSet] = []
+
+    # proc_root is injectable so tests can point at a fixture tree; on macOS or a container without /proc this returns an empty list, not an error.
     if not proc_root.exists():
         return results
 
     for entry in proc_root.iterdir():
         name_str = entry.name
+
+        # /proc mixes numeric PID directories with entries like "meminfo" and "self"; only digits are processes.
         if not name_str.isdigit():
             continue
         pid = int(name_str)
@@ -600,9 +609,12 @@ def probe_running_processes(
             continue
 
         metrics = parse_smaps_rollup_text(rollup_text)
+
+        # Tiny processes have nothing worth reclaiming; skipping them keeps the report short and the scan fast.
         if metrics["rss_kb"] < min_rss_kb:
             continue
 
+        # Fallback label so a process that exits between the smaps read and the comm read still appears in the report with a usable name.
         comm_name = f"pid-{pid}"
         comm_path = entry / "comm"
         try:
@@ -645,6 +657,7 @@ def probe_running_processes(
         )
 
     # Largest cold-reclaimable memory first.
+    # Coldest memory first: those processes give the biggest saving for the least risk to responsiveness.
     results.sort(key=lambda p: (p.cold_reclaimable_kb, p.pss_kb, p.rss_kb), reverse=True)
     return results
 
@@ -657,6 +670,8 @@ def parse_nvidia_smi_outputs(
     proc_root: Path = Path("/proc"),
 ) -> GpuTelemetry:
     """Parse `nvidia-smi` adapter CSV and compute-apps CSV into `GpuTelemetry`."""
+
+    # nvidia-smi prints one line per GPU; only the first adapter is used because the governor plans for a single gaming GPU.
     gpu_lines = [line.strip() for line in gpu_csv.splitlines() if line.strip()]
     if not gpu_lines:
         return GpuTelemetry(
@@ -670,6 +685,8 @@ def parse_nvidia_smi_outputs(
         )
 
     first = [part.strip() for part in gpu_lines[0].split(",")]
+
+    # The query asks for five columns (name, total, used, free, utilisation); fewer means the output format changed or an error message came back.
     if len(first) < 5:
         return GpuTelemetry(
             available=False,
@@ -693,6 +710,8 @@ def parse_nvidia_smi_outputs(
     util_pct = _safe_int(first[4])
 
     procs: List[GpuProcessInfo] = []
+
+    # Compute-apps lines are "pid, name, used MiB"; lines for processes without a valid pid are skipped.
     for line in apps_csv.splitlines():
         line = line.strip()
         if not line:
@@ -743,6 +762,8 @@ def probe_gpu_vram(
     # 3-second timeout; any failure maps to return code 1 so callers treat the GPU as unavailable.
     def _default_runner(cmd: Sequence[str]) -> Tuple[int, str]:
         try:
+
+            # 3 s timeout and check=False: a hung or missing nvidia-smi must degrade to "no GPU data", never block or crash the governor.
             proc = subprocess.run(
                 list(cmd),
                 capture_output=True,
@@ -754,6 +775,7 @@ def probe_gpu_vram(
         except (FileNotFoundError, subprocess.SubprocessError, OSError):
             return 1, ""
 
+    # Dependency injection: tests pass a fake runner that returns canned CSV text, so no GPU is needed.
     exec_fn = runner or _default_runner
     rc1, gpu_out = exec_fn([
         "nvidia-smi",
@@ -776,6 +798,8 @@ def probe_gpu_vram(
         "--query-compute-apps=pid,process_name,used_memory",
         "--format=csv,noheader,nounits",
     ])
+
+    # Per-process data is optional: failing here still leaves usable adapter totals.
     if rc2 != 0:
         apps_out = ""
 
@@ -789,12 +813,16 @@ def trim_self_allocator() -> SelfAllocatorTrimResult:
     Compact Python garbage collector generations and release free glibc / Darwin
     heap arena pages back to the OS kernel.
     """
+
+    # Runs the Python garbage collector first so freed objects are actually available for the allocator to return.
     collected = int(gc.collect())
     trimmed = 0
     allocator_name = "python_gc_only"
 
     if sys.platform.startswith("linux"):
         try:
+
+            # malloc_trim(0) releases free heap pages back to the OS; it is glibc specific, hence the hasattr guard and the OSError catch for musl or other libcs.
             libc = ctypes.CDLL("libc.so.6")
             if hasattr(libc, "malloc_trim"):
                 libc.malloc_trim.argtypes = [ctypes.c_size_t]
@@ -837,6 +865,7 @@ def parse_candidate_vmas_from_maps(maps_text: str, max_regions: int = 64) -> Lis
         addr_range, perms = parts[0], parts[1]
         pathname = parts[5] if len(parts) >= 6 else ""
         # Skip executable text segments, stack/vdso/vvar, and device mappings
+        # Executable mappings (code) are skipped because paging them out just makes the program fault them back in immediately; unreadable mappings cannot be advised at all.
         if "x" in perms or "r" not in perms:
             continue
         if pathname.startswith("[stack") or pathname in ("[vdso]", "[vvar]", "[vsyscall]"):
@@ -852,10 +881,13 @@ def parse_candidate_vmas_from_maps(maps_text: str, max_regions: int = 64) -> Lis
         except ValueError:
             continue
         length = end_addr - start_addr
+
+        # Small regions cost a syscall entry each but save almost nothing, so they are ignored.
         if length >= 256 * 1024:  # Only advise regions >= 256 KB
             ranges.append((start_addr, length, pathname))
 
     # Sort largest regions first so bounded iovec calls cover the biggest allocations
+    # Sorted before the [:max_regions] cap, so the 64 advised ranges are the 64 largest.
     ranges.sort(key=lambda item: item[1], reverse=True)
     return [(start, length) for start, length, _ in ranges[:max_regions]]
 
@@ -872,6 +904,8 @@ def invoke_linux_process_madvise(
     Execute Linux `pidfd_open` (syscall 434) + `process_madvise` (syscall 440)
     on candidate VMA ranges of `pid`. Never kills or interrupts the target process.
     """
+
+    # The raw syscall numbers 434 and 440 are x86_64 specific; on any other architecture they would call a different syscall, so the function refuses instead.
     if not sys.platform.startswith("linux") or platform.machine().lower() not in ("x86_64", "amd64"):
         return False, 0, "unsupported_arch_or_os"
 
@@ -891,6 +925,7 @@ def invoke_linux_process_madvise(
     except OSError as exc:
         return False, 0, f"libc_unavailable:{exc}"
 
+    # The libc syscall() wrapper returns -1 and sets errno on failure; use_errno=True above makes ctypes.get_errno() reliable.
     syscall_fn.restype = ctypes.c_long
     # A pidfd is a stable handle that cannot be confused with a recycled PID.
     pidfd = int(syscall_fn( ctypes.c_long(SYS_PIDFD_OPEN_X86_64), ctypes.c_int(pid), ctypes.c_uint(0)))
@@ -900,6 +935,8 @@ def invoke_linux_process_madvise(
 
     total_advised = 0
     try:
+
+        # process_madvise takes an array of iovec (address, length) pairs, so all ranges are advised in ONE syscall instead of one per range.
         iov_array_type = _Iovec * len(vmas)
         iov_array = iov_array_type()
         for idx, (start_addr, length) in enumerate(vmas):
@@ -936,6 +973,8 @@ def try_erase_llama_server_idle_slots(base_url: str = "http://127.0.0.1:18190") 
     Query `llama-server` `/slots` endpoint and erase KV cache on idle (`is_processing == False`)
     slots to reclaim VRAM immediately without restarting `llama-server`.
     """
+
+    # Count is returned even after a partial failure, so the caller can report how much VRAM work actually happened.
     erased_count = 0
     try:
         req = urllib.request.Request(f"{base_url.rstrip('/')}/slots", method="GET")
@@ -946,6 +985,8 @@ def try_erase_llama_server_idle_slots(base_url: str = "http://127.0.0.1:18190") 
         for slot in payload:
             if not isinstance(slot, dict):
                 continue
+
+            # Never erase a slot that is serving a request: that would corrupt a live generation. Idle slots hold only cached prompt state.
             if slot.get("is_processing", False):
                 continue
             slot_id = slot.get("id", 0)
@@ -963,6 +1004,8 @@ def try_erase_llama_server_idle_slots(base_url: str = "http://127.0.0.1:18190") 
 # Report (by checking sysfs/procfs paths) which memory-management features exist; informational only.
 def detect_kernel_capabilities() -> Dict[str, bool]:
     """Check active Linux kernel support for DAMON, MGLRU, zram, and process_madvise."""
+
+    # Informational only: the governor does not branch on these, it reports them so a user can see why a feature was unavailable.
     caps = {
         "smaps_rollup": Path("/proc/self/smaps_rollup").exists(),
         "damon_sysfs": Path("/sys/kernel/mm/damon/admin").exists(),
