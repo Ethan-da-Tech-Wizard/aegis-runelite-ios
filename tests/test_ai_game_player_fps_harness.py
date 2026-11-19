@@ -212,6 +212,9 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
                 self.assertEqual(len(loaded["playable_benchmarks"]), 6)
                 self.assertGreaterEqual(loaded["aggregate_summary"]["governed_ai_smoothness_rating"], 90.0)
                 self.assertIn("the answer is 146", md_out.read_text(encoding="utf-8"))
+                # The reports must disclose that the FPS figures are simulated, not measured.
+                self.assertTrue(loaded["data_source"].startswith("SIMULATED"))
+                self.assertIn("SIMULATED", md_out.read_text(encoding="utf-8"))
             finally:
                 harness.BENCHMARK_JSON_PATH = orig_json
                 harness.REPORT_MD_PATH = orig_md

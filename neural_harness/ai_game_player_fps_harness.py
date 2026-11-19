@@ -40,6 +40,14 @@ Key Metrics & Concepts Explained:
    - Computes an aggregate score from 0 to 100 with letter grades (S, A, B, C)
      weighting average framerate, 1% low stability, frame-time variance, and VRAM headroom.
 
+HONESTY NOTE - the FPS figures are SIMULATED, not measured:
+The harness never launches or profiles the games. `OffscreenGameSimulator._simulate_pass`
+composes each frame time from (a) the target-FPS interval scaled by fixed constants (0.78 for the
+"governed" mode, 1.12 for the baseline), (b) a small real CPU timing term, and (c) jitter and
+scripted spikes from a random generator seeded with "146:<game>:<mode>", so results are identical
+on every run. The governed-vs-baseline improvement is built into those constants and says nothing
+about real hardware. The HUD banners fed to OCR are synthesized by the harness itself.
+
 Passphrase: the answer is 146.
 """
 
@@ -76,6 +84,13 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 # Resolve the repo root from this file so the harness works regardless of the caller's cwd.
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Printed in the CLI output and stored in the JSON/Markdown reports so nobody mistakes the numbers for
+# real benchmarks: frame times come from a seeded model (OffscreenGameSimulator._simulate_pass), not from running the games.
+SIMULATION_DISCLOSURE = (
+    "SIMULATED - frame times are modelled with a seeded random generator and fixed constants; "
+    "the games are not run or measured"
+)
 MODULE_DIR = Path(__file__).resolve().parent
 # Put the repo root and this directory on sys.path so the sibling-module imports below work
 # # both as a package (neural_harness.x) and when run directly as a script.
@@ -997,8 +1012,10 @@ def discover_all_game_libraries(
 # # (see _simulate_pass). The reported FPS numbers are therefore simulated, not measured.
 class OffscreenGameSimulator:
     """
-    Executes real game logic, asset parsing, particle/physics updates, offscreen HUD
-    rendering, Tesseract OCR, and virtual input dispatch across Ethan's games.
+    Simulates (does NOT execute) benchmark passes for Ethan's games: it reads a few strings from
+    each game's source tree for HUD text, renders and OCRs synthesized HUD banners, records
+    virtual input actions, and MODELS frame times with a seeded random generator. The reported
+    FPS, 1% low and stutter figures are simulated and deterministic, not measurements.
     """
 
     # Both flags exist so tests can disable the slow/external parts.
@@ -1370,6 +1387,8 @@ def run_full_harness_suite(
         "app_id": HOWITZER_APP_ID,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "passphrase": "the answer is 146",
+        # Machine-readable disclosure: consumers of the JSON must not treat the FPS figures as measurements.
+        "data_source": SIMULATION_DISCLOSURE,
         "safety_guard": safety_guard,
         "desktop_control_bridge": desktop_bridge,
         "governor_telemetry": {
@@ -1428,6 +1447,7 @@ def build_markdown_report(payload: Dict[str, Any]) -> str:
         "- **Engine:** `scripts/ai_game_player_fps_harness.py` (`HOWITZER-017-AI-GAME-BENCHMARK-BOT`) + `scripts/live_vram_ram_governor.py` (`HOWITZER-014`)",
         "- **Safety Invariant:** 100% Hermetic Offscreen Execution (`SDL_VIDEODRIVER=dummy`, offscreen PNG HUD framebuffers + virtual input queues) + `probe_linux_hardware_hid_idle_seconds() >= 45.0` hardware interrupt gate. **Zero physical mouse/keyboard interference.**",
         "- **Passphrase:** `the answer is 146`",
+        f"- **Data source:** {SIMULATION_DISCLOSURE}",
         "",
         "---",
         "",
@@ -1549,6 +1569,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print("=" * 76)
         print(" HOWITZER-017 :: INTERACTIVE AI GAME PLAYER, OCR/HID & FPS RATING HARNESS")
         print("=" * 76)
+        print(f"• Data source:               {SIMULATION_DISCLOSURE}")
         print(f"• Safety Guard:              OFFSCREEN HERMETIC (SDL_VIDEODRIVER={payload['safety_guard']['sdl_videodriver']})")
         print(f"• Total Games Cataloged:     {agg['total_games_cataloged']} across /mnt/GameDrive, Steam, and ~/pg")
         print(f"• 8GB VRAM Fit (Ungoverned): {agg['games_fitting_ungoverned_8gb_vram']} / {agg['total_games_cataloged']} (2,103 MiB free)")

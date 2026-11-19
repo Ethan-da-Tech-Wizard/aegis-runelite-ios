@@ -20,7 +20,7 @@
 - **Authentic OSRS Mobile Controls**: Tap-to-walk, 350ms haptic right-click context menu, 2-finger camera orbit, and pinch-to-zoom without clumsy arcade joysticks.
 - **Zero-Credential Security**: Client-side authentication leverages Apple's `ASWebAuthenticationSession` with PKCE against official identity endpoints. Passwords and credentials never touch or land on third-party servers.
 - **100% Free Sideloading**: First-class support for SideStore ($0 free on-device refresh over local loopback VPN), AltStore, and Xcode direct installation.
-- **Neural Gamer FPS Harness**: Offscreen AI agent benchmarking suite measuring frame-time pacing, 1% lows, VRAM headroom, and real-time OCR telemetry.
+- **Neural Gamer FPS Harness**: Offscreen benchmarking *simulation* that models frame-time pacing, 1% lows and VRAM headroom with a seeded generator (it does not run or measure the real games; see the harness section below) plus OCR of synthesized HUD frames.
 
 ---
 
@@ -136,12 +136,20 @@ To install the standalone client with zero sideloading apps:
 
 ## 🧠 Neural Gamer AI FPS & Latency Benchmark Harness
 
-The repository includes a comprehensive offscreen AI game player simulation and performance rating harness located in `neural_harness/`.
+The repository includes an offscreen AI game player simulation and performance rating harness located in `neural_harness/`.
+
+> **Important - these FPS numbers are simulated, not measured.** The harness does not launch or
+> profile any game. For each game it builds frame times from a model: a target-FPS interval scaled
+> by fixed constants (0.78x for the "governed" mode, 1.12x for the baseline), plus a small real CPU
+> timing term, plus jitter and spikes drawn from a random generator seeded with `146:<game>:<mode>`
+> (so every run prints identical numbers). The governed-vs-baseline gap is therefore built into the
+> constants and is not evidence about real hardware. The HUD/OCR step is real code but runs on text
+> banners the harness synthesizes itself. Use it as a demo/test of the reporting pipeline only.
 
 ### Capabilities:
 - **Hermetic Offscreen Simulation**: Enforces `SDL_VIDEODRIVER=dummy` and `SDL_AUDIODRIVER=dummy`. Zero physical desktop display requirements or window opening.
 - **Hardware HID Safety Guard**: Monitors hardware interrupt activity (`i8042` keyboard and physical USB HID endpoints) to guarantee benchmarks never interfere with human input.
-- **Frame-Time Pacing & Jitter Analysis**: Measures average FPS, 1% low FPS, 99th percentile frame times (p99 ms), and stutter frequency.
+- **Frame-Time Pacing & Jitter Analysis**: Computes average FPS, 1% low FPS, 99th percentile frame times (p99 ms), and stutter frequency from the *simulated* frame times.
 - **VRAM & Memory Governor**: Dynamically manages cold RAM memory pools and models VRAM headroom for multi-engine game architectures.
 - **OCR HUD Telemetry**: Extracts game state and HUD text from offscreen PNG frames using bitmap glyph rasterization and OCR validation.
 
