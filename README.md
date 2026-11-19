@@ -81,8 +81,12 @@ In Streamed Mode, a desktop or server host runs the heavy RuneLite engine and pl
 
 To start the bridge daemon:
 ```bash
-python3 bridge_daemon/server.py --port 8088
+python3 bridge_daemon/server.py --port 8088            # loopback only (this machine)
+python3 bridge_daemon/server.py --port 8088 --host 0.0.0.0   # let a phone on your LAN connect
 ```
+
+The bridge has no authentication or TLS, so it binds to `127.0.0.1` by default. Only use
+`--host 0.0.0.0` on a network you trust.
 
 ---
 

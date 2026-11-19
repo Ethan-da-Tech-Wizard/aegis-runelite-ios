@@ -266,25 +266,55 @@ class RuneLiteBridgeHandler(BaseHTTPRequestHandler):
         pass
 
 
-def run_server(port: int = 8088, bounded_seconds: int = 0) -> None:
-    """Instantiate and start the HTTP server on all available network interfaces.
+# Default bind address: loopback only. The server has no authentication or TLS, so it must be
+# opted in to LAN exposure explicitly with --host 0.0.0.0 (or a specific LAN address).
+DEFAULT_HOST = "127.0.0.1"
+
+
+def is_loopback_host(host: str) -> bool:
+    """Return True if `host` only accepts connections from this machine (127.x.x.x, ::1, localhost)."""
+    return host in ("localhost", "::1") or host.startswith("127.")
+
+
+def make_server(host: str = DEFAULT_HOST, port: int = 8088) -> HTTPServer:
+    """Create (but do not start) the bridge HTTP server bound to host:port.
+
+    Parameters:
+        host (str): Interface to bind. Defaults to loopback (DEFAULT_HOST) because the API has no
+                    authentication; pass "0.0.0.0" to let a phone on the LAN connect.
+        port (int): TCP port; 0 asks the OS for a free port (used by tests).
+
+    Returns:
+        HTTPServer: Single-threaded server using RuneLiteBridgeHandler.
+    """
+    return HTTPServer((host, port), RuneLiteBridgeHandler)
+
+
+def run_server(port: int = 8088, bounded_seconds: int = 0, host: str = DEFAULT_HOST) -> None:
+    """Instantiate and start the HTTP server on `host` (loopback unless told otherwise).
 
     Parameters:
         port (int): TCP port to bind (default: 8088).
         bounded_seconds (int): If greater than 0, runs server for N seconds then exits cleanly.
                               Useful for automated testing and CI verification.
+        host (str): Interface to bind (default 127.0.0.1). Non-loopback values expose an
+                    unauthenticated API to the network and print a warning.
     """
     local_ip = get_local_ip()
-    # Bind to 0.0.0.0 to listen on all interfaces (loopback, Wi-Fi, Ethernet)
-    # Bound to 0.0.0.0 so a phone on the LAN can reach it. There is no authentication or TLS, and CORS allows any origin;
-    # # run it only on a trusted network. (ThreadingHTTPServer is imported but a plain single-threaded HTTPServer is used.)
-    server = HTTPServer(("0.0.0.0", port), RuneLiteBridgeHandler)
+    # Loopback by default: there is no authentication or TLS and CORS allows any origin, so
+    # LAN exposure (needed for a phone to connect) is an explicit opt-in via --host.
+    # ThreadingHTTPServer is imported but a plain single-threaded HTTPServer is used.
+    server = make_server(host, port)
     url = f"http://{local_ip}:{port}"
 
     print("=" * 64)
     print("   ⚔️  RUNELITE DISTRIBUTED MOBILE BRIDGE (iOS / Safari)")
     print("=" * 64)
-    print(f"• Mobile WebClip URL : {url}")
+    if is_loopback_host(host):
+        print("• Binding            : loopback only (this machine). Use --host 0.0.0.0 for a phone on the LAN.")
+    else:
+        print(f"• WARNING            : bound to {host} with NO authentication or TLS; trusted networks only.")
+        print(f"• Mobile WebClip URL : {url}")
     print(f"• Local Host URL     : http://127.0.0.1:{port}")
     print("• Security Model     : Zero-Frontend User Data (100% Safe)")
     # This banner text is static; it is not computed from the daemon's loaded catalog.
@@ -320,6 +350,12 @@ def main(argv: list[str] | None = None) -> int:
         int: Exit status code (0 for success).
     """
     parser = argparse.ArgumentParser(description="iOS RuneLite Bridge Streaming Server")
+    parser.add_argument(
+        "--host",
+        default=DEFAULT_HOST,
+        help="Interface to bind (default: 127.0.0.1, loopback only). Use 0.0.0.0 to serve a phone on "
+             "your LAN; the API has no authentication or TLS."
+    )
     parser.add_argument("--port", type=int, default=8088, help="Port to bind (default: 8088)")
     parser.add_argument(
         "--test-seconds",
@@ -329,7 +365,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    run_server(port=args.port, bounded_seconds=args.test_seconds)
+    run_server(port=args.port, bounded_seconds=args.test_seconds, host=args.host)
     return 0
 
 

@@ -53,6 +53,7 @@ from bridge_daemon.event_stream_protocol import (
 )
 from bridge_daemon.runelite_headless_daemon import HeadlessRuneLiteDaemon
 from bridge_daemon.security_gate import MobileSecurityGate, SecurityViolation
+from bridge_daemon import server as bridge_server
 
 
 # Tests the simulated daemon only: overlays are fixed sample shapes, so assertions check structure, not game behaviour.
@@ -166,6 +167,50 @@ class TestSecurityGate(unittest.TestCase):
         self.assertEqual(audit_result["verdict"], "PASS")
         self.assertTrue(audit_result["zero_credential_guarantee"])
         self.assertEqual(len(audit_result["findings"]), 0)
+
+
+class TestServerBinding(unittest.TestCase):
+    """The unauthenticated bridge must bind to loopback unless LAN exposure is requested."""
+
+    def test_default_host_is_loopback(self) -> None:
+        """No --host flag means 127.0.0.1 (regression: it used to bind 0.0.0.0 with no auth)."""
+        from unittest import mock
+
+        with mock.patch.object(bridge_server, "run_server") as run:
+            bridge_server.main([])
+        self.assertEqual(run.call_args.kwargs["host"], "127.0.0.1")
+
+    def test_explicit_host_is_passed_through(self) -> None:
+        """--host 0.0.0.0 is honoured so a phone can still connect when the user opts in."""
+        from unittest import mock
+
+        with mock.patch.object(bridge_server, "run_server") as run:
+            bridge_server.main(["--host", "0.0.0.0"])
+        self.assertEqual(run.call_args.kwargs["host"], "0.0.0.0")
+
+    def test_server_actually_binds_loopback_and_answers(self) -> None:
+        """Start the real server on a free port and fetch /api/health over loopback."""
+        import json
+        import threading
+        import urllib.request
+
+        srv = bridge_server.make_server(port=0)
+        try:
+            self.assertEqual(srv.server_address[0], "127.0.0.1")
+            thread = threading.Thread(target=srv.serve_forever, daemon=True)
+            thread.start()
+            url = f"http://127.0.0.1:{srv.server_address[1]}/api/health"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                self.assertEqual(json.loads(resp.read())["status"], "HEALTHY")
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+    def test_is_loopback_host(self) -> None:
+        for host in ("127.0.0.1", "localhost", "::1"):
+            self.assertTrue(bridge_server.is_loopback_host(host))
+        for host in ("0.0.0.0", "192.168.1.5"):
+            self.assertFalse(bridge_server.is_loopback_host(host))
 
 
 if __name__ == "__main__":
