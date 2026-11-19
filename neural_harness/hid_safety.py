@@ -40,9 +40,15 @@ import time
 # Location where the previous hardware activity signature and timestamp are cached.
 # Using /tmp ensures temporary file storage that survives script reinvocations
 # without polluting the repository workspace.
+# The file holds {"sig": <signature>, "last_activity_ts": <epoch seconds>} and is shared across processes,
+# # so two harnesses on one machine see each other's idle bookkeeping. Fixed name in /tmp: not safe against other local users.
 STATE_FILE: Path = Path("/tmp") / "hid_idle_state.json"
 
 
+# Idle detection is indirect: it fingerprints several activity counters and treats any change since the
+# # previous call as 'user active now'. Consequences: the first call (no state file) always returns 0.0, and
+# # idle time only grows across successive calls, since the signature is compared with the last stored one.
+# # It also reads counters that other activity (not just human input) can change, which errs on the side of 'busy'.
 def probe_linux_hardware_hid_idle_seconds() -> float:
     """Probe hardware interrupts, USB traffic, and cursor metrics to calculate idle time.
 
@@ -77,6 +83,7 @@ def probe_linux_hardware_hid_idle_seconds() -> float:
     # Step 2: Read PS/2 / Laptop Keyboard Interrupts (IRQ)
     # The Linux kernel exposes hardware interrupt counts in /proc/interrupts.
     # The "i8042" chip controller handles PS/2 keyboards and legacy laptop trackpads.
+    # Sum of per-CPU interrupt counts for the i8042 (PS/2 keyboard/touchpad) controller.
     irq_total: int = 0
     try:
         proc_int: Path = Path("/proc/interrupts")
@@ -106,6 +113,8 @@ def probe_linux_hardware_hid_idle_seconds() -> float:
                 if prod_file.exists() and urb_file.exists():
                     prod_name = prod_file.read_text(encoding="utf-8", errors="ignore").strip().lower()
                     # Filter for typical human input peripheral keywords
+                    # 'keychron' is excluded, apparently so that one keyboard's own traffic does not mask idleness (the
+                    # # author's choice; the code gives no other reason).
                     keywords = ("keyboard", "mouse", "receiver", "trackpad", "touchpad")
                     if any(kw in prod_name for kw in keywords) and "keychron" not in prod_name:
                         urb_txt = urb_file.read_text(encoding="utf-8", errors="ignore").strip()
@@ -126,6 +135,7 @@ def probe_linux_hardware_hid_idle_seconds() -> float:
                 if item.name.isdigit():
                     st = item.stat()
                     # An access time distinctly greater than creation time signifies active I/O
+                    # Heuristic: a terminal whose access time has drifted from its change time has seen I/O.
                     if abs(st.st_atime - st.st_ctime) >= 2.0:
                         pts_latest = max(pts_latest, int(st.st_atime))
     except Exception:
@@ -135,6 +145,7 @@ def probe_linux_hardware_hid_idle_seconds() -> float:
     # If the user is running the Hyprland desktop environment, query cursor position
     cursor_str: str = ""
     try:
+        # Cursor position changes when the mouse moves (Hyprland only; absent elsewhere -> empty string).
         res = subprocess.run(["hyprctl", "cursorpos"], capture_output=True, text=True, timeout=1)
         if res.returncode == 0:
             cursor_str = res.stdout.strip()
@@ -143,6 +154,7 @@ def probe_linux_hardware_hid_idle_seconds() -> float:
 
     # Step 6: Formulate a composite signature of physical activity
     # By combining the 4 independent metrics, ANY hardware input will alter this string.
+    # Any difference in any component changes the string, which is all the comparison needs.
     current_sig: str = f"{irq_total}:{usb_hid_urbs}:{pts_latest}:{cursor_str}"
 
     # Step 7: Compare against persistent state
@@ -157,6 +169,7 @@ def probe_linux_hardware_hid_idle_seconds() -> float:
         except Exception:
             pass
 
+    # Persist the new signature with 'now' as the activity time. Write failures are ignored; idle time then just reads 0.0 next time.
     # If the signature changed or no prior state exists, user activity is happening NOW.
     try:
         STATE_FILE.write_text(

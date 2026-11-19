@@ -38,6 +38,9 @@ from typing import Any, Dict, List, Set
 
 # Set of forbidden case-insensitive substrings indicating authentication secrets.
 # Using a Python set provides O(1) average lookup time when checking membership.
+# NOTE: matching is by substring, so it is deliberately broad and can reject harmless keys that merely
+# # contain these letters (e.g. 'pin' inside 'mapping', 'auth' inside 'author', 'hash' inside 'hashtag').
+# # Over-rejecting is the accepted trade-off of a fail-closed gate.
 FORBIDDEN_KEYS: Set[str] = {
     "password", "pass", "pwd", "token", "session", "cookie", "auth",
     "pin", "bank_pin", "secret", "private_key", "credential", "bearer",
@@ -46,9 +49,12 @@ FORBIDDEN_KEYS: Set[str] = {
 
 # Regular expression pattern to detect potential base64/hex cryptographic hashes or secrets.
 # Matches 32 or more consecutive alphanumeric/base64 characters without whitespace.
+# The regex itself matches 32+ characters, but sanitize_outbound_dict only applies it to strings longer
+# # than 64 characters; shorter token-like strings pass.
 SUSPICIOUS_VAL_PATTERN: re.Pattern = re.compile(r"^[A-Za-z0-9+/=_-]{32,}$")
 
 
+# Raised instead of returning a partial result so a leaking packet is dropped entirely.
 class SecurityViolation(ValueError):
     """Custom exception raised when an outbound packet violates the zero-credential policy.
 
@@ -98,6 +104,7 @@ class MobileSecurityGate:
         # Step 2: Iterate through every key-value pair
         for key, value in data.items():
             # Step 3: Key-name inspection
+            # Keys are assumed to be strings (non-string keys would raise AttributeError here).
             k_lower = key.lower()
             if any(forbidden in k_lower for forbidden in FORBIDDEN_KEYS):
                 raise SecurityViolation(
@@ -113,6 +120,7 @@ class MobileSecurityGate:
                 clean[key] = cls.sanitize_outbound_list(value)
             elif isinstance(value, str):
                 # Heuristic: Check for accidental raw secret or token leakage in string values
+                # Only long, space-free strings made purely of base64/hex-style characters are treated as secrets.
                 if len(value) > 64 and SUSPICIOUS_VAL_PATTERN.match(value) and " " not in value:
                     raise SecurityViolation(
                         f"Potential high-entropy secret value in field '{key}'"
@@ -164,6 +172,7 @@ class MobileSecurityGate:
         findings: List[str] = []
 
         # Keywords commonly associated with accidental secret hardcoding
+        # Note the audit only flags assignments of a quoted literal (apiKey = "..."); a variable or empty string is not flagged.
         sensitive_keywords = ["apiKey", "authToken", "password", "client_secret", "jwt"]
         for word in sensitive_keywords:
             # Regex searches for patterns like `apiKey = "xyz"` or `password: 'secret'`

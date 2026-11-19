@@ -35,6 +35,7 @@ import tempfile
 import unittest
 
 # Ensure the repository root is on sys.path for direct module resolution
+# Repo root on sys.path so 'neural_harness' imports without installation.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -45,12 +46,14 @@ except ImportError:
     from scripts import ai_game_player_fps_harness as harness
 
 
+# The benchmark under test is a seeded model, so these assertions are deterministic.
 class TestAIGamePlayerFPSHarness(unittest.TestCase):
     """Test cases for AI gameplay simulation, frame pacing, and safety guards."""
 
     def test_offscreen_and_hid_safety_guard(self) -> None:
         """Verify SDL dummy video driver and hardware input safety interlocks."""
         # Ensure offscreen dummy driver is configured to prevent window creation
+        # Importing the harness sets the dummy driver as a side effect (unless the environment already chose another).
         self.assertEqual(os.environ.get("SDL_VIDEODRIVER"), "dummy")
 
         # Offscreen hermetic mode is always safe even if user just moved mouse (idle=0.0s)
@@ -88,6 +91,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
 
     def test_offscreen_png_render_and_ocr_extraction(self) -> None:
         """Verify synthetic HUD banner rendering to PNG and optical text extraction."""
+        # Uses only A-Z/space so every character exists in the harness's bitmap font.
         banner = "KEY A APPLE"
         # Render string into an in-memory PNG byte stream
         png_bytes = harness.render_hud_text_to_png_bytes(banner, scale=3)
@@ -104,10 +108,12 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
         self.assertIn(engine, ("tesseract_cli", "offscreen_bitmap_decoder"))
         # Verify text similarity exceeds 75%
         sim = harness.compute_ocr_token_similarity(banner, ocr_text)
+        # Passes with Tesseract or with the fallback (which echoes the hint and scores 100).
         self.assertGreaterEqual(sim, 75.0)
 
     def test_virtual_hid_action_dispatch_and_policy_fallback(self) -> None:
         """Verify rule-based decision trees for discrete gameplay actions."""
+        # allow_network_llm=False forces the deterministic per-game policy; no HTTP request is attempted.
         for game_id in ("baby_game", "OSRS", "Ult_Gaming", "kid_game", "iron_front_ue5"):
             act = harness.query_local_llm_game_action(
                 game_id=game_id,
@@ -122,6 +128,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
 
     def test_multi_engine_game_catalog_discovery_and_vram_budgets(self) -> None:
         """Verify filesystem library scanning and VRAM budget rating."""
+        # Skipped on machines without the author's game drives; this is why 1 test is reported as skipped elsewhere.
         if os.environ.get("ETHAN_CERTIFY_HERMETIC") == "1":
             self.skipTest("Physical game library inventory is outside the certifier's isolated HOME.")
         if not harness.GAMEDRIVE_STEAM_COMMON.exists() and not harness.LOCAL_STEAM_COMMON.exists():
@@ -155,11 +162,13 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
             self.assertIn(expected_game, names)
 
         # Verify AAA games that spill 8GB VRAM ungoverned fit cleanly under HOWITZER-014 governance
+        # Battlefield 1 (4650 MiB) exceeds ungoverned free VRAM but fits governed; this encodes the static profile numbers.
         bf1 = next(c for c in catalog if c.name == "Battlefield 1")
         self.assertFalse(bf1.fits_ungoverned_8gb_vram)
         self.assertTrue(bf1.fits_howitzer_014_governed_8gb_vram)
         self.assertGreater(bf1.vram_headroom_governed_mb, 1000)
 
+    # Holds by construction: governed frame-time constants are smaller than baseline ones in _simulate_pass.
     def test_governed_beats_baseline_fps_and_smoothness_rating(self) -> None:
         """Verify that memory governance improves average FPS and reduces frame jitter."""
         sim = harness.OffscreenGameSimulator(use_tesseract=False, allow_network_llm=False)
@@ -184,6 +193,7 @@ class TestAIGamePlayerFPSHarness(unittest.TestCase):
             tmp_root = Path(tmpdir)
             json_out = tmp_root / "benchmarks.json"
             md_out = tmp_root / "report.md"
+            # Redirect artifact output to a temp dir and restore the module globals in 'finally' so the repo's real outputs are untouched.
             orig_json = harness.BENCHMARK_JSON_PATH
             orig_md = harness.REPORT_MD_PATH
             try:

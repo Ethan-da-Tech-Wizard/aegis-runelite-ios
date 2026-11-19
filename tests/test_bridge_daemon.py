@@ -39,6 +39,7 @@ import sys
 import unittest
 
 # Ensure the repository root is on sys.path so modules can be imported
+# Make the repo root importable so 'bridge_daemon' resolves however the tests are launched (pytest or unittest).
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -54,9 +55,11 @@ from bridge_daemon.runelite_headless_daemon import HeadlessRuneLiteDaemon
 from bridge_daemon.security_gate import MobileSecurityGate, SecurityViolation
 
 
+# Tests the simulated daemon only: overlays are fixed sample shapes, so assertions check structure, not game behaviour.
 class TestHeadlessRuneLiteDaemon(unittest.TestCase):
     """Verifies the headless game loop, plugin overlays, and touch dispatching."""
 
+    # New daemon per test: tick counter and plugin toggles never leak between tests.
     def setUp(self) -> None:
         """Create a fresh daemon instance before each test run."""
         self.daemon = HeadlessRuneLiteDaemon()
@@ -67,6 +70,7 @@ class TestHeadlessRuneLiteDaemon(unittest.TestCase):
         # Verify protocol version string matches
         self.assertEqual(manifest["protocol"], PROTOCOL_VERSION)
         # Ensure at least the core plugins are loaded
+        # The built-in fallback catalog has exactly five plugins, so this holds even without the JSON catalog.
         self.assertGreaterEqual(len(manifest["plugins"]), 5)
         # Check that standard RuneLite plugins like Ground Items or Tile Indicators are present
         plugin_names = {p.get("class_name") or p.get("name") for p in manifest["plugins"]}
@@ -81,6 +85,7 @@ class TestHeadlessRuneLiteDaemon(unittest.TestCase):
         self.assertIsInstance(state["overlays"], list)
         self.assertGreater(len(state["overlays"]), 0)
 
+        # The tile-indicator overlay is on by default, so 'tile' must be present in the first tick.
         kinds = {item["kind"] for item in state["overlays"]}
         self.assertIn("tile", kinds)
 
@@ -100,6 +105,7 @@ class TestHeadlessRuneLiteDaemon(unittest.TestCase):
         self.assertTrue(self.daemon.active_plugins.get("TileIndicatorsPlugin"))
 
 
+# Fail-closed behaviour of the outbound sanitiser.
 class TestSecurityGate(unittest.TestCase):
     """Verifies fail-closed zero-credential security boundary."""
 
@@ -117,6 +123,7 @@ class TestSecurityGate(unittest.TestCase):
 
     def test_forbidden_keys_raise_security_violation(self) -> None:
         """Verify that any dictionary containing credential keys raises SecurityViolation."""
+        # Each key contains at least one FORBIDDEN_KEYS substring (e.g. 'auth_token' -> 'auth', 'user_credential' -> 'credential').
         violations = [
             {"password": "secret_password_123"},
             {"auth_token": "bearer 12345"},
@@ -142,6 +149,7 @@ class TestSecurityGate(unittest.TestCase):
 
     def test_high_entropy_secret_string_raises(self) -> None:
         """Verify that high-entropy secret string values raise SecurityViolation."""
+        # 65 chars exceeds the >64 length threshold and matches the base64-style pattern, so it must be rejected.
         high_entropy_dict = {
             "display": "A" * 65  # 65 chars of uniform entropy matching pattern
         }
@@ -150,6 +158,7 @@ class TestSecurityGate(unittest.TestCase):
 
     def test_audit_mobile_bundle_html(self) -> None:
         """Verify that static bundle audit verifies zero hardcoded credentials."""
+        # Static audit of the shipped web client for hard-coded credential literals.
         bundle_path = ROOT / "bridge_daemon" / "frontend" / "ios_runelite_webclip.html"
         self.assertTrue(bundle_path.exists())
         html_content = bundle_path.read_text(encoding="utf-8")

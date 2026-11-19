@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Optional
 
 # Protocol version identifier string used for handshake validation.
 # When a client connects, comparing this string prevents version mismatch bugs.
+# Bump this string when the wire format changes; the clients compare it as an exact string.
 PROTOCOL_VERSION: str = "twu.runelite-mobile.v1"
 
 
@@ -151,6 +152,8 @@ class TouchInputPacket:
         # Step 2: Safely cast coordinate numbers to integers
         # Step 3: Instantiate and return the validated TouchInputPacket
         return cls(
+            # The action is not validated against the known gesture names here; the receiving daemon decides what to do with it.
+            # # int() raises ValueError/TypeError on malformed numbers, which the HTTP layer reports as a 400.
             action=data.get("action", "tap"),
             x=int(data.get("x", 0)),
             y=int(data.get("y", 0)),

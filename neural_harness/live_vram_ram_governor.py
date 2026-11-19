@@ -42,8 +42,10 @@ Key Primitives & Computer Science Concepts:
    - Zero-downtime KV-cache eviction via `/slots/{id}?action=erase` to reclaim VRAM headroom.
 """
 
+# Lazy type annotations.
 from __future__ import annotations
 
+# Standard library only. ctypes is used for raw Linux syscalls and libc calls (no third-party dependency).
 import argparse
 import ctypes
 import gc
@@ -59,6 +61,8 @@ import urllib.request
 import dataclasses
 from dataclasses import asdict, field
 
+# Python < 3.10 rejects dataclass(slots=..., kw_only=...). Shim: drop those kwargs so the same
+# # decorator calls work on older interpreters (slots are just an optimisation).
 if sys.version_info < (3, 10):
     _orig_dataclass = dataclasses.dataclass
     def dataclass(*args, **kwargs):
@@ -71,18 +75,24 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 # Linux x86_64 syscall & madvise constants
+# Linux x86_64 syscall numbers and madvise advice codes. process_madvise (440) and pidfd_open (434)
+# # are only valid on x86_64, hence the platform checks in invoke_linux_process_madvise().
 SYS_PIDFD_OPEN_X86_64 = 434
 SYS_PROCESS_MADVISE_X86_64 = 440
 MADV_DONTNEED = 4
+# MADV_COLD marks pages as cheap-to-reclaim; MADV_PAGEOUT asks the kernel to reclaim them now.
+# # Neither discards data: pages are swapped out or re-read from files on next access.
 MADV_COLD = 20
 MADV_PAGEOUT = 21
 
+# Role labels used to decide CPU placement and whether memory may be trimmed.
 # Role classifications
 ROLE_CRITICAL_SYSTEM = "CRITICAL_SYSTEM"
 ROLE_FOREGROUND_GAME = "FOREGROUND_GAME"
 ROLE_AI_INFERENCE = "AI_INFERENCE"
 ROLE_BACKGROUND_WORK = "BACKGROUND_WORK"
 
+# Display/audio/session daemons that are never trimmed and always stay on the fast cores (matched on exact comm name).
 CRITICAL_SYSTEM_NAMES = frozenset({
     "hyprland",
     "start-hyprland",
@@ -101,6 +111,7 @@ CRITICAL_SYSTEM_NAMES = frozenset({
     "networkmanager",
 })
 
+# Local model servers; matched as a substring of the process name or command line.
 AI_INFERENCE_NAMES = frozenset({
     "llama-server",
     "llama-cli",
@@ -109,6 +120,7 @@ AI_INFERENCE_NAMES = frozenset({
     "mlx_lm",
 })
 
+# Substrings in a process name/cmdline that suggest a game or heavy 3D/render workload (heuristic, can false-positive).
 GAME_PROCESS_HINTS = frozenset({
     "wine-preloader",
     "wine64-preloader",
@@ -130,6 +142,7 @@ GAME_PROCESS_HINTS = frozenset({
 })
 
 
+# Mirror of C 'struct iovec' (base pointer + length) as required by process_madvise's vector argument.
 class _Iovec(ctypes.Structure):
     _fields_ = [
         ("iov_base", ctypes.c_void_p),
@@ -138,6 +151,7 @@ class _Iovec(ctypes.Structure):
 
 
 @dataclass(slots=True)
+# System-wide RAM/swap figures in KiB, as read from /proc/meminfo.
 class SystemMemoryTelemetry:
     mem_total_kb: int
     mem_free_kb: int
@@ -155,6 +169,7 @@ class SystemMemoryTelemetry:
     zram_recommended: bool
 
     @property
+    # Used = total - MemAvailable (the kernel's estimate of reclaimable-aware free memory).
     def used_kb(self) -> int:
         return max(0, self.mem_total_kb - self.mem_available_kb)
 
@@ -166,6 +181,8 @@ class SystemMemoryTelemetry:
 
 
 @dataclass(slots=True)
+# Per-process memory accounting from /proc/<pid>/smaps_rollup, all in KiB.
+# # 'Referenced' approximates the recently-touched working set; RSS minus Referenced is 'cold'.
 class ProcessWorkingSet:
     pid: int
     name: str
@@ -184,6 +201,7 @@ class ProcessWorkingSet:
     file_reclaimable_kb: int
 
     @property
+    # Referenced can transiently exceed RSS, so clamp to RSS.
     def active_working_set_kb(self) -> int:
         return min(self.rss_kb, self.referenced_kb)
 
@@ -195,6 +213,7 @@ class ProcessWorkingSet:
 
 
 @dataclass(slots=True)
+# One GPU compute process as reported by nvidia-smi.
 class GpuProcessInfo:
     pid: int
     process_name: str
@@ -203,6 +222,7 @@ class GpuProcessInfo:
 
 
 @dataclass(slots=True)
+# Adapter-level VRAM stats; available=False means nvidia-smi was missing or failed.
 class GpuTelemetry:
     available: bool
     gpu_name: str
@@ -214,6 +234,7 @@ class GpuTelemetry:
 
 
 @dataclass(slots=True)
+# Which logical CPUs are treated as performance (p_cores) vs efficiency (e_cores) cores.
 class CpuTopology:
     total_logical_cpus: int
     p_cores: List[int]
@@ -223,6 +244,7 @@ class CpuTopology:
 
 
 @dataclass(slots=True)
+# Planned (and optionally applied) CPU pinning for one process. applied/diagnostic record the outcome.
 class CpuAffinityAction:
     pid: int
     name: str
@@ -235,6 +257,7 @@ class CpuAffinityAction:
 
 
 @dataclass(slots=True)
+# Planned (and optionally applied) madvise hint for one process, with estimated reclaim.
 class MemoryTrimAction:
     pid: int
     name: str
@@ -252,6 +275,7 @@ class MemoryTrimAction:
 
 
 @dataclass(slots=True)
+# Recommendation for shrinking a model server's VRAM use; only slots_erased reflects an action actually taken.
 class VramOptimizationAction:
     pid: int
     process_name: str
@@ -265,6 +289,7 @@ class VramOptimizationAction:
 
 
 @dataclass(slots=True)
+# Result of compacting this Python process's own heap.
 class SelfAllocatorTrimResult:
     gc_collected_objects: int
     malloc_trim_returned: int
@@ -272,6 +297,7 @@ class SelfAllocatorTrimResult:
 
 
 @dataclass(slots=True)
+# Complete snapshot plus planned actions. Serialised to JSON by to_dict().
 class GovernorActionPlan:
     timestamp: float
     hostname: str
@@ -300,6 +326,8 @@ class GovernorActionPlan:
         return asdict(self)
 
 
+# Pure parser (testable without /proc). Lines look like 'Rss:   1234 kB'; unknown keys are ignored,
+# # missing keys stay 0. The derived cold/file-reclaimable values are added at the end.
 def parse_smaps_rollup_text(text: str) -> Dict[str, int]:
     """
     Parse `/proc/<pid>/smaps_rollup` content into exact KB metrics.
@@ -320,6 +348,7 @@ def parse_smaps_rollup_text(text: str) -> Dict[str, int]:
         "swap_kb": 0,
         "swap_pss_kb": 0,
     }
+    # Map smaps_rollup field names to this module's metric names.
     key_map = {
         "Rss": "rss_kb",
         "Pss": "pss_kb",
@@ -344,6 +373,7 @@ def parse_smaps_rollup_text(text: str) -> Dict[str, int]:
         if not target_field:
             continue
         parts = rest.strip().split()
+        # Values are '<number> kB'; take the number and skip malformed lines.
         if parts and parts[0].isdigit():
             metrics[target_field] = int(parts[0])
 
@@ -356,6 +386,7 @@ def parse_smaps_rollup_text(text: str) -> Dict[str, int]:
     return metrics
 
 
+# Pure parser for /proc/meminfo; MemAvailable falls back to MemFree on very old kernels.
 def parse_meminfo_text(text: str) -> SystemMemoryTelemetry:
     """Parse `/proc/meminfo` text into `SystemMemoryTelemetry`."""
     raw: Dict[str, int] = {}
@@ -374,6 +405,7 @@ def parse_meminfo_text(text: str) -> SystemMemoryTelemetry:
     inactive_anon = raw.get("Inactive(anon)", 0)
 
     # Recommend zram when SwapTotal == 0 and Inactive(anon) > 256 MB
+    # Heuristic: no swap at all but a lot of idle anonymous memory, so compressed swap would help.
     zram_rec = swap_total == 0 and inactive_anon > 262144
 
     return SystemMemoryTelemetry(
@@ -394,6 +426,8 @@ def parse_meminfo_text(text: str) -> SystemMemoryTelemetry:
     )
 
 
+# Read live RAM stats. Off Linux (no /proc/meminfo) returns a FIXED placeholder of 8 GiB total / 4 GiB
+# # available; those numbers are not real measurements.
 def probe_system_memory(proc_root: Path = Path("/proc")) -> SystemMemoryTelemetry:
     """Probe system RAM via `/proc/meminfo` on Linux with macOS fallback."""
     meminfo_path = proc_root / "meminfo"
@@ -424,6 +458,8 @@ def probe_system_memory(proc_root: Path = Path("/proc")) -> SystemMemoryTelemetr
     )
 
 
+# Detection order: (1) sysfs max-frequency spread >= 400 MHz means hybrid, split at the midpoint;
+# # (2) a 16-thread Linux box is assumed to be the author's 12650H layout; (3) otherwise a 3/4 vs 1/4 split.
 def detect_cpu_topology(sys_cpu_root: Path = Path("/sys/devices/system/cpu")) -> CpuTopology:
     """
     Detect hybrid P-core vs E-core CPU topology.
@@ -463,6 +499,7 @@ def detect_cpu_topology(sys_cpu_root: Path = Path("/sys/devices/system/cpu")) ->
     if max_freqs and len(set(max_freqs.values())) > 1:
         highest_freq = max(max_freqs.values())
         lowest_freq = min(max_freqs.values())
+        # P and E cores differ by far more than 400 MHz in max frequency; identical cores do not.
         if highest_freq - lowest_freq >= 400_000:  # >= 400 MHz spread indicates hybrid P/E cores
             threshold = (highest_freq + lowest_freq) // 2
             p_cores = sorted(cpu for cpu, freq in max_freqs.items() if freq >= threshold)
@@ -476,6 +513,8 @@ def detect_cpu_topology(sys_cpu_root: Path = Path("/sys/devices/system/cpu")) ->
                     model_name=model_name,
                 )
 
+    # Hard-coded layout: 12 P threads (6 cores x 2 via SMT) followed by 4 E threads. Note the condition also
+    # # matches ANY 16-CPU Linux machine, not only the 12650H.
     # Explicit recognition for i7-12650H (6P/12T + 4E/4T = 16 threads)
     if total_cpus == 16 and ("12650H" in model_name or sys.platform.startswith("linux")):
         return CpuTopology(
@@ -486,6 +525,7 @@ def detect_cpu_topology(sys_cpu_root: Path = Path("/sys/devices/system/cpu")) ->
             model_name=model_name,
         )
 
+    # Non-hybrid CPU: reserve the first ~75% of CPUs for foreground work, the rest for background.
     # Symmetric fallback (e.g., generic 4-thread CPU -> 0..1 foreground, 2..3 background)
     split_idx = max(1, (total_cpus * 3) // 4) if total_cpus >= 4 else max(1, total_cpus // 2)
     p_cores = list(range(0, split_idx))
@@ -499,6 +539,8 @@ def detect_cpu_topology(sys_cpu_root: Path = Path("/sys/devices/system/cpu")) ->
     )
 
 
+# Precedence: explicit game PIDs, then critical system names, then AI servers, then game hints, else background.
+# # AI is checked before game hints so e.g. a model server whose path contains a game-ish word stays AI.
 def classify_process_role(
     pid: int,
     name: str,
@@ -526,6 +568,8 @@ def classify_process_role(
     return ROLE_BACKGROUND_WORK
 
 
+# Walk /proc, parse smaps_rollup per PID and return processes with at least min_rss_kb resident,
+# # sorted by cold memory first. Unreadable processes (permissions, exited mid-scan) are silently skipped.
 def probe_running_processes(
     proc_root: Path = Path("/proc"),
     explicit_game_pids: Optional[Set[int]] = None,
@@ -545,6 +589,7 @@ def probe_running_processes(
         if not name_str.isdigit():
             continue
         pid = int(name_str)
+        # smaps_rollup requires ptrace-level access; for other users' processes the read fails and is skipped.
         rollup_path = entry / "smaps_rollup"
         if not rollup_path.exists():
             continue
@@ -570,6 +615,7 @@ def probe_running_processes(
         cmdline_path = entry / "cmdline"
         try:
             if cmdline_path.exists():
+                # cmdline is NUL-separated argv; convert separators to spaces for matching/display.
                 raw_cmd = cmdline_path.read_bytes().replace(b"\x00", b" ").decode("utf-8", errors="replace").strip()
                 if raw_cmd:
                     cmdline = raw_cmd
@@ -581,6 +627,7 @@ def probe_running_processes(
             ProcessWorkingSet(
                 pid=pid,
                 name=comm_name,
+                # Truncate long command lines to keep reports small.
                 cmdline=cmdline[:240],
                 role=role,
                 rss_kb=metrics["rss_kb"],
@@ -597,10 +644,13 @@ def probe_running_processes(
             )
         )
 
+    # Largest cold-reclaimable memory first.
     results.sort(key=lambda p: (p.cold_reclaimable_kb, p.pss_kb, p.rss_kb), reverse=True)
     return results
 
 
+# Pure parser: gpu_csv is 'name,total,used,free,util' (noheader, nounits); apps_csv is 'pid,name,used_mb' per line.
+# # Malformed input yields available=False rather than an exception.
 def parse_nvidia_smi_outputs(
     gpu_csv: str,
     apps_csv: str,
@@ -631,6 +681,7 @@ def parse_nvidia_smi_outputs(
             processes=[],
         )
 
+    # Extract the first run of digits (tolerates stray units or '[N/A]' text -> 0).
     def _safe_int(val: str) -> int:
         m = re.search(r"\d+", val)
         return int(m.group(0)) if m else 0
@@ -683,11 +734,13 @@ def parse_nvidia_smi_outputs(
     )
 
 
+# Run nvidia-smi twice (adapter, then compute apps). 'runner' is injectable so tests can fake output.
 def probe_gpu_vram(
     runner: Optional[Callable[[Sequence[str]], Tuple[int, str]]] = None,
     proc_root: Path = Path("/proc"),
 ) -> GpuTelemetry:
     """Probe live NVIDIA GPU VRAM and compute processes via `nvidia-smi` with clean fallback."""
+    # 3-second timeout; any failure maps to return code 1 so callers treat the GPU as unavailable.
     def _default_runner(cmd: Sequence[str]) -> Tuple[int, str]:
         try:
             proc = subprocess.run(
@@ -729,6 +782,8 @@ def probe_gpu_vram(
     return parse_nvidia_smi_outputs(gpu_out, apps_out, proc_root=proc_root)
 
 
+# Only affects THIS process: run Python's GC and ask the C allocator to return free arenas to the OS.
+# # The platform-specific calls are probed with hasattr because libc variants differ.
 def trim_self_allocator() -> SelfAllocatorTrimResult:
     """
     Compact Python garbage collector generations and release free glibc / Darwin
@@ -766,6 +821,9 @@ def trim_self_allocator() -> SelfAllocatorTrimResult:
     )
 
 
+# Select memory regions worth advising: readable, non-executable, not stack/vdso/device, >= 256 KiB.
+# # Skipping executable text and special mappings avoids hinting pages that would just fault back in or
+# # that the kernel manages itself. Largest regions are first so the 64-entry cap covers the most memory.
 def parse_candidate_vmas_from_maps(maps_text: str, max_regions: int = 64) -> List[Tuple[int, int]]:
     """
     Parse `/proc/<pid>/maps` to extract anonymous or clean file-backed readable/writable
@@ -802,6 +860,9 @@ def parse_candidate_vmas_from_maps(maps_text: str, max_regions: int = 64) -> Lis
     return [(start, length) for start, length, _ in ranges[:max_regions]]
 
 
+# Steps: read the target's maps, open a pidfd, then issue one process_madvise call over an iovec array.
+# # Returns (ok, bytes_advised, diagnostic). The call is a hint: it does not kill, signal or pause the
+# # target. It needs CAP_SYS_NICE/ptrace rights, so non-root runs usually return an errno diagnostic.
 def invoke_linux_process_madvise(
     pid: int,
     advice: int,
@@ -831,6 +892,7 @@ def invoke_linux_process_madvise(
         return False, 0, f"libc_unavailable:{exc}"
 
     syscall_fn.restype = ctypes.c_long
+    # A pidfd is a stable handle that cannot be confused with a recycled PID.
     pidfd = int(syscall_fn( ctypes.c_long(SYS_PIDFD_OPEN_X86_64), ctypes.c_int(pid), ctypes.c_uint(0)))
     if pidfd < 0:
         err = ctypes.get_errno()
@@ -859,6 +921,7 @@ def invoke_linux_process_madvise(
             return False, 0, f"process_madvise_errno_{err}"
         total_advised = ret
         return True, total_advised, "ok"
+    # Always close the pidfd, even on error.
     finally:
         try:
             os.close(pidfd)
@@ -866,6 +929,8 @@ def invoke_linux_process_madvise(
             pass
 
 
+# Best-effort: GET /slots and POST an erase for each slot that is not processing. Slots mid-request are
+# # never touched. Network errors just return the count so far.
 def try_erase_llama_server_idle_slots(base_url: str = "http://127.0.0.1:18190") -> int:
     """
     Query `llama-server` `/slots` endpoint and erase KV cache on idle (`is_processing == False`)
@@ -895,6 +960,7 @@ def try_erase_llama_server_idle_slots(base_url: str = "http://127.0.0.1:18190") 
     return erased_count
 
 
+# Report (by checking sysfs/procfs paths) which memory-management features exist; informational only.
 def detect_kernel_capabilities() -> Dict[str, bool]:
     """Check active Linux kernel support for DAMON, MGLRU, zram, and process_madvise."""
     caps = {
@@ -909,6 +975,10 @@ def detect_kernel_capabilities() -> Dict[str, bool]:
     return caps
 
 
+# Main entry: gather telemetry, then for each process plan CPU affinity, memory trim (background/AI only)
+# # and VRAM recommendations. With apply_live=False (default) NOTHING on the system is changed; with
+# # apply_live=True it calls sched_setaffinity, process_madvise and the slot-erase endpoint.
+# # Note: target_vram_free_mb is accepted for CLI compatibility but is not used by the logic below.
 def build_governor_plan(
     mode: str = "game-on",
     apply_live: bool = False,
@@ -942,6 +1012,9 @@ def build_governor_plan(
     swap_active = sys_mem.swap_total_kb > 0
 
     for proc in processes:
+        # Game-on: games and critical system on P-cores, AI and background on E-cores with idle scheduling.
+        # # Game-off: everything returns to all CPUs. The scheduler policy / nice values are recorded in the plan
+        # # but only the affinity mask is actually applied below.
         # 1. CPU Affinity & Scheduler Plan
         if mode == "game-off":
             target_cpus = all_cpus
@@ -972,6 +1045,7 @@ def build_governor_plan(
             diagnostic="planned",
         )
 
+        # sched_setaffinity is Linux-only; permission errors are recorded, not raised.
         if apply_live and hasattr(os, "sched_setaffinity"):
             try:
                 os.sched_setaffinity(proc.pid, set(target_cpus))
@@ -982,6 +1056,9 @@ def build_governor_plan(
 
         cpu_actions.append(aff_action)
 
+        # Only background and AI processes are candidates; games and system daemons are never trimmed.
+        # # PAGEOUT is used when swap exists or clean file pages dominate (they can simply be dropped);
+        # # otherwise the gentler COLD hint is used.
         # 2. Proactive Non-Destructive Memory Trim Plan
         if proc.role in (ROLE_BACKGROUND_WORK, ROLE_AI_INFERENCE):
             reclaim_candidate_kb = max(proc.cold_reclaimable_kb, proc.file_reclaimable_kb)
@@ -999,6 +1076,7 @@ def build_governor_plan(
                     advice_code = MADV_COLD
                     est_reclaim = max(proc.file_reclaimable_kb, proc.cold_reclaimable_kb)
 
+                # An estimate can never exceed what the process actually has resident.
                 est_reclaim = min(proc.rss_kb, est_reclaim)
                 mem_action = MemoryTrimAction(
                     pid=proc.pid,
@@ -1028,6 +1106,8 @@ def build_governor_plan(
 
                 mem_actions.append(mem_action)
 
+    # Only llama-server/ollama are handled. The target sizes below are hard-coded assumptions from the author's
+    # # model/GPU, not computed from the model.
     # 3. GPU VRAM Working-Set Compression Plan
     for gpu_proc in gpu_info.processes:
         lower_name = gpu_proc.process_name.lower()
@@ -1036,6 +1116,7 @@ def build_governor_plan(
             has_kv_quant = "-ctk" in lower_cmd and "-ctv" in lower_cmd
             has_flash_attn = "-fa" in lower_cmd or "--flash-attn" in lower_cmd
             # Extract model path if present
+            # Reuse the running server's model path (-m ...); otherwise recommend a default path from the author's drive.
             model_match = re.search(r"-m\s+(\S+)", gpu_proc.cmdline)
             model_path = (
                 model_match.group(1)
@@ -1048,6 +1129,8 @@ def build_governor_plan(
                 f"llama-server -m {model_path} --host 127.0.0.1 --port 18190 "
                 f"--n-gpu-layers 33 -fa -ctk q4_0 -ctv q4_0 -c 4096 -np 1 -b 512 -ub 256 -t {e_core_threads}"
             )
+            # Without quantised KV cache and flash attention, assume the server can shrink to ~1.3 GiB;
+            # # if already optimised, assume a further 25% saving.
             if not has_kv_quant or not has_flash_attn:
                 # 1.1 GiB Q4_K_M weights (~1120 MiB) + ~210 MiB q4_0 KV cache = ~1330 MiB target
                 target_mb = min(gpu_proc.used_vram_mb, 1350)
@@ -1055,6 +1138,7 @@ def build_governor_plan(
                 target_mb = int(gpu_proc.used_vram_mb * 0.75)
 
             saved_mb = max(0, gpu_proc.used_vram_mb - target_mb)
+            # The only place this plan touches the model server, and only when live and in game-on mode.
             slots_erased = 0
             if apply_live and mode == "game-on":
                 slots_erased = try_erase_llama_server_idle_slots("http://127.0.0.1:18190")
@@ -1078,6 +1162,7 @@ def build_governor_plan(
                 )
             )
 
+    # Totals across all scanned processes, plus the estimated savings from the planned actions.
     total_rss = sum(p.rss_kb for p in processes)
     total_pss = sum(p.pss_kb for p in processes)
     total_ref = sum(p.referenced_kb for p in processes)
@@ -1112,6 +1197,7 @@ def build_governor_plan(
     )
 
 
+# Render the plan as a fixed-width text report for the terminal.
 def format_human_summary(plan: GovernorActionPlan) -> str:
     """Format a concise, high-signal terminal report of the governor plan."""
     lines = [
@@ -1150,6 +1236,7 @@ def format_human_summary(plan: GovernorActionPlan) -> str:
 
 
 @dataclass(slots=True)
+# Result of the KV-cache sizing calculation for the model server on a given port.
 class KvCacheElasticScalingReport:
     port: int
     baseline_vram_mb: int
@@ -1166,6 +1253,7 @@ class KvCacheElasticScalingReport:
 
 
 @dataclass(slots=True)
+# Estimated resource profile for an 8 GB Mac running telemetry plus a clamped llama-server.
 class MacVerboseTelemetryBridgeProfile:
     node_name: str
     magi_seat: int
@@ -1184,6 +1272,7 @@ class MacVerboseTelemetryBridgeProfile:
 
 
 @dataclass(slots=True)
+# Outcome of choosing between 'research' and 'game' scheduling modes.
 class AdaptiveFramePacingTransition:
     active_mode: str
     game_detected: bool
@@ -1200,6 +1289,7 @@ class AdaptiveFramePacingTransition:
 
 
 @dataclass(slots=True)
+# Bundle of the three sub-reports plus whether they met the sandbox acceptance thresholds.
 class HighUsageCostReductionSummary:
     kv_cache_scaling: KvCacheElasticScalingReport
     mac_bridge_profile: MacVerboseTelemetryBridgeProfile
@@ -1210,6 +1300,8 @@ class HighUsageCostReductionSummary:
         return asdict(self)
 
 
+# Calculation helpers that combine the above. The methods compute figures from inputs and constants;
+# # they do not apply changes except an optional idle-slot eviction.
 class HighUsageCostReducer:
     """
     Computes and validates in sandbox the combined impact of:
@@ -1218,6 +1310,7 @@ class HighUsageCostReducer:
       3. Adaptive Game/Work Frame-Pacing Governor (`TURBO_RESEARCH_MODE` vs `ULTRA_LOW_LATENCY_GAME_MODE`).
     """
 
+    # Mode names used by evaluate_adaptive_frame_pacing().
     TURBO_RESEARCH_MODE = "TURBO_RESEARCH_MODE"
     ULTRA_LOW_LATENCY_GAME_MODE = "ULTRA_LOW_LATENCY_GAME_MODE"
 
@@ -1231,6 +1324,7 @@ class HighUsageCostReducer:
         self.baseline_vram_mb = int(baseline_vram_mb)
         self.target_vram_mb = int(target_vram_mb)
 
+    # Optimised size = min(current, target). Slot eviction runs only when asked; slot_eraser is injectable for tests.
     def compute_kv_cache_elastic_scaling(
         self,
         current_vram_mb: Optional[int] = None,
@@ -1263,6 +1357,8 @@ class HighUsageCostReducer:
             live_endpoint_preserved=True,
         )
 
+    # The Python RSS figure is ESTIMATED from the payload size (768 KiB base + payload KiB, clamped to 512-1536),
+    # # not measured; the other fields are constant policy values.
     def build_mac_verbose_telemetry_profile(
         self,
         sample_payload: Optional[Dict[str, Any]] = None,
@@ -1301,6 +1397,8 @@ class HighUsageCostReducer:
             verbose_packet_bytes=len(serialized),
         )
 
+    # Any foreground-game process flips to game mode; otherwise research mode. 'cold_rss_paged_out_kb' is the
+    # # amount that WOULD be eligible (nothing is paged out here).
     def evaluate_adaptive_frame_pacing(
         self,
         processes: Sequence[ProcessWorkingSet],
@@ -1351,6 +1449,8 @@ class HighUsageCostReducer:
             madvise_syscall_used="process_madvise(SYS_440, MADV_COLD)",
         )
 
+    # Run the plan in non-live mode against a (possibly fake) /proc and /sys tree and check acceptance thresholds:
+    # # >= 4300 MiB VRAM saved, < 2 MB telemetry buffer, no extra model RAM, RSS cap <= 1536 MiB.
     def validate_in_sandbox(
         self,
         proc_root: Path,
@@ -1390,6 +1490,8 @@ class HighUsageCostReducer:
             topology=plan.cpu_topology,
             explicit_game_pids=explicit_game_pids,
         )
+        # Because the KV report is derived from constants (5792 baseline -> 1450 target = 4342 MiB), this check
+        # # passes by construction unless an observed VRAM figure is already low.
         validated = (
             kv_report.vram_saved_mb >= 4300
             and mac_profile.python_telemetry_under_2mb
@@ -1405,6 +1507,8 @@ class HighUsageCostReducer:
 
 
 
+# CLI: --mode audit|game-on|game-off, --apply to actually change system state (ignored in audit),
+# # --game-pids to mark games explicitly, --json/--output for machine-readable plans.
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="HOWITZER Live VRAM & RAM Working-Set Governor"
@@ -1454,6 +1558,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     plan = build_governor_plan(
         mode=args.mode,
+        # Audit mode is always read-only, even if --apply is given.
         apply_live=bool(args.apply and args.mode != "audit"),
         explicit_game_pids=game_pids,
         target_vram_free_mb=args.target_vram_free_mb,

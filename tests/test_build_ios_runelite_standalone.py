@@ -28,6 +28,7 @@ from pathlib import Path
 import sys
 import unittest
 
+# Repo root on sys.path so 'scripts.build_ios_runelite_standalone' imports.
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -35,11 +36,13 @@ if str(ROOT) not in sys.path:
 from scripts.build_ios_runelite_standalone import build_all, HTML_PATH, CONFIG_PATH
 
 
+# Note: build_all() rewrites ios_app/RuneLite.mobileconfig, so running these tests touches that file in the working tree.
 class TestStandaloneIOSRuneLite(unittest.TestCase):
     """Test suite verifying the standalone builder pipeline and output files."""
 
     def test_build_all_creates_artifacts(self) -> None:
         """Verify that running build_all() creates HTML and mobileconfig files with checksums."""
+        # Runs the real build; there is no temp-dir isolation.
         res = build_all()
         # Verify both physical files exist on the filesystem
         self.assertTrue(HTML_PATH.exists())
@@ -57,12 +60,14 @@ class TestStandaloneIOSRuneLite(unittest.TestCase):
         # Strict requirement: Authentic OSRS tap, long-press right click, 2-finger orbit
         self.assertIn("osrsContextMenu", content)
         self.assertIn("isTwoFingerDragging", content)
+        # triggerContextMenu is checked here but not by build_all()'s own required-token list.
         self.assertIn("triggerContextMenu", content)
         self.assertIn("tileIndicators", content)
         self.assertIn("groundItems", content)
 
     def test_mobileconfig_format(self) -> None:
         """Verify that the generated .mobileconfig conforms to Apple's XML Plist format."""
+        # Substring checks only; the plist is not parsed or schema-validated.
         config_text = CONFIG_PATH.read_text(encoding="utf-8")
         self.assertIn("com.apple.webClip.managed", config_text)
         self.assertIn("net.runelite.mobile", config_text)

@@ -64,6 +64,8 @@ except ImportError:
     from security_gate import MobileSecurityGate, SecurityViolation
 
 
+# This is a demo/simulation backend: it does not connect to a real RuneLite or OSRS client. The overlays it
+# # emits are fixed sample shapes at constant coordinates, and touches are only echoed back, not injected anywhere.
 class HeadlessRuneLiteDaemon:
     """Manages the backend RuneLite plugin loop and generates secure overlay streams.
 
@@ -81,6 +83,7 @@ class HeadlessRuneLiteDaemon:
                                            `bridge_daemon/data/runelite_re_digest.json`.
         """
         # Step 1: Initialize game tick counter to zero
+        # Advances once per call to step_game_tick() (i.e. per client poll), not by a wall-clock timer.
         self.tick_count: int = 0
 
         # Step 2: Establish the path to the plugin catalog database
@@ -96,6 +99,7 @@ class HeadlessRuneLiteDaemon:
         }
 
         # Step 5: Explicitly enable essential core mobile gameplay plugins
+        # These five are forced on regardless of the catalog's enabled_by_default flag.
         mobile_core = [
             "TileIndicatorsPlugin",
             "GroundItemsPlugin",
@@ -113,6 +117,7 @@ class HeadlessRuneLiteDaemon:
             List[Dict[str, Any]]: List of plugin descriptor dictionaries.
         """
         # Check if the external JSON catalog file exists on disk
+        # A missing or unreadable catalog is not an error; the built-in list below keeps tests and demos working.
         if self.catalog_path.exists():
             try:
                 data = json.loads(self.catalog_path.read_text(encoding="utf-8"))
@@ -121,6 +126,7 @@ class HeadlessRuneLiteDaemon:
                 # If reading or JSON parsing fails, fall through to default list
                 pass
 
+        # Fallback catalog; its class names match the ones step_game_tick() knows how to draw.
         # Built-in representative fallback plugin list for standalone testing
         return [
             {
@@ -224,6 +230,7 @@ class HeadlessRuneLiteDaemon:
         # Step 7: Synthesize Overlay 4 — Quick Prayer Bar Meter
         # Displays dynamic progress of the player's quick prayer flicking timer
         if self.active_plugins.get("PrayerPlugin", True):
+            # Fake progress value cycling 0..90 in steps of 10 each tick, standing in for a real prayer timer.
             progress = (self.tick_count % 10) * 10
             batch.overlays.append(OverlayItem(
                 kind="bar",
@@ -241,9 +248,11 @@ class HeadlessRuneLiteDaemon:
 
         # Step 9: Enforce Zero-Credential Security Boundary
         # Any accidental secret keys are scrubbed or raise an exception before output
+        # Defence in depth: the HTTP layer sanitises again, but the daemon never emits unscrubbed data.
         clean_dict = MobileSecurityGate.sanitize_outbound_dict(raw_dict)
         return clean_dict
 
+    # Acknowledgement only. Nothing is clicked in a game; the response echoes the gesture so the client can confirm delivery.
     def handle_touch_input(self, touch: TouchInputPacket) -> Dict[str, Any]:
         """Translate incoming iOS mobile touch gestures into game actions.
 

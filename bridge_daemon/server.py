@@ -63,6 +63,7 @@ except ImportError:
     from security_gate import MobileSecurityGate, SecurityViolation
 
 # Absolute path to the packaged HTML5 mobile WebClip web application
+# Single-file client served at '/', '/mobile' and '/index.html'.
 HTML_PATH: Path = Path(__file__).resolve().parent / "frontend" / "ios_runelite_webclip.html"
 
 
@@ -88,6 +89,8 @@ def get_local_ip() -> str:
         str: The IPv4 address string (e.g., '192.168.1.50'), or '127.0.0.1' on error.
     """
     # Step 1: Create a UDP socket (AF_INET = IPv4, SOCK_DGRAM = Datagram/UDP)
+    # SOCK_DGRAM + connect() never sends a packet; it only makes the kernel choose a route/source address.
+    # # 8.8.8.8 is just a routable dummy destination.
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         # Step 2: Query the OS routing table for outward interface
@@ -110,6 +113,8 @@ class RuneLiteBridgeHandler(BaseHTTPRequestHandler):
     """
 
     # Shared instance of the headless OSRS simulator across incoming HTTP requests
+    # Class attribute: ONE simulator instance is shared by all handler instances (and threads), so tick state is global.
+    # # Not locked; fine for a single-client demo.
     daemon: HeadlessRuneLiteDaemon = HeadlessRuneLiteDaemon()
 
     def do_GET(self) -> None:
@@ -137,6 +142,7 @@ class RuneLiteBridgeHandler(BaseHTTPRequestHandler):
             self.wfile.write(content)
 
         # Route 2: Real-time Overlay State Stream
+        # Each request to /api/state advances the simulation by one tick, so tick rate equals the client's polling rate.
         elif self.path == "/api/state":
             # Advance simulation tick (600ms heartbeat)
             packet = self.daemon.step_game_tick()
@@ -208,6 +214,7 @@ class RuneLiteBridgeHandler(BaseHTTPRequestHandler):
         - `/api/toggle`: Enables or disables an individual RuneLite plugin on the daemon.
         """
         # Step 1: Read the exact byte count declared in Content-Length header
+        # Trusts the client-declared length without an upper bound; acceptable on a trusted LAN only.
         content_length = int(self.headers.get("Content-Length", 0))
         raw_body = self.rfile.read(content_length)
 
@@ -253,6 +260,7 @@ class RuneLiteBridgeHandler(BaseHTTPRequestHandler):
         else:
             self.send_error(404, "Not Found")
 
+    # Overrides BaseHTTPRequestHandler's per-request stderr logging.
     def log_message(self, format: str, *args: Any) -> None:
         """Suppress routine terminal access log noise to keep console output clean."""
         pass
@@ -268,6 +276,8 @@ def run_server(port: int = 8088, bounded_seconds: int = 0) -> None:
     """
     local_ip = get_local_ip()
     # Bind to 0.0.0.0 to listen on all interfaces (loopback, Wi-Fi, Ethernet)
+    # Bound to 0.0.0.0 so a phone on the LAN can reach it. There is no authentication or TLS, and CORS allows any origin;
+    # # run it only on a trusted network. (ThreadingHTTPServer is imported but a plain single-threaded HTTPServer is used.)
     server = HTTPServer(("0.0.0.0", port), RuneLiteBridgeHandler)
     url = f"http://{local_ip}:{port}"
 
@@ -277,11 +287,13 @@ def run_server(port: int = 8088, bounded_seconds: int = 0) -> None:
     print(f"• Mobile WebClip URL : {url}")
     print(f"• Local Host URL     : http://127.0.0.1:{port}")
     print("• Security Model     : Zero-Frontend User Data (100% Safe)")
+    # This banner text is static; it is not computed from the daemon's loaded catalog.
     print("• Active Plugins     : 77 Native Plugins Loaded")
     print("• iPhone Setup       : Open in Safari -> Tap Share -> 'Add to Home Screen'")
     print("=" * 64)
 
     # If bounded duration specified, run in background thread for testing
+    # Test mode: serve in a daemon thread for N seconds, then shut down cleanly.
     if bounded_seconds > 0:
         t = threading.Thread(target=server.serve_forever, daemon=True)
         t.start()

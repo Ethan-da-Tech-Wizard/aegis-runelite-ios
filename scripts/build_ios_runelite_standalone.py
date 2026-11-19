@@ -44,6 +44,7 @@ import sys
 import uuid
 
 # Define filesystem paths relative to repository root
+# All paths derive from this file's location so the script works from any cwd.
 ROOT: Path = Path(__file__).resolve().parent.parent
 STANDALONE_DIR: Path = ROOT / "ios_app"
 HTML_PATH: Path = STANDALONE_DIR / "runelite_mobile.html"
@@ -74,6 +75,7 @@ def generate_webclip_profile(standalone_url: str = "file:///runelite_mobile.html
     profile_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, "net.runelite.mobile.profile"))
 
     # Step 2: Minimal 64x64 base64 PNG icon representing RuneLite blue sword emblem
+    # Embedded PNG data for the Home Screen icon (decoded by iOS, so it must be valid base64).
     icon_png_b64 = (
         "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAPElEQVR42u3PMQEAAAgE"
         "ID95/0xjg1cwkITe04FCEAgEAgEAgEAgEAgEAgEAgEAgEAgEAgEAgEAgEAhmwAEz0QAB"
@@ -81,6 +83,8 @@ def generate_webclip_profile(standalone_url: str = "file:///runelite_mobile.html
     )
 
     # Step 3-4: Build XML Property List format
+    # f-string template: only {icon_png_b64}, {clip_uuid}, {standalone_url} and {profile_uuid} are substituted;
+    # # the XML must stay byte-stable because its SHA-256 is reported as the build fingerprint.
     profile = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -157,10 +161,13 @@ def build_all() -> dict[str, str]:
     html_content = HTML_PATH.read_text(encoding="utf-8")
 
     # Step 3: Enforce strict authenticity invariant: NO virtual arcade joysticks
+    # Project policy: touch input must map 1:1 to OSRS gestures, so an on-screen arcade joystick fails the build.
     if "joystick" in html_content.lower():
         raise ValueError("Security/Authenticity error: Joystick found in RuneLite mobile codebase!")
 
     # Step 4: Verify essential OSRS mobile gesture routines are present
+    # Names that must appear in the client source as a crude presence check that the gesture/overlay engine
+    # # was not stripped. It does not prove the features work, only that the identifiers exist.
     required_tokens = [
         "osrsContextMenu",
         "worldToScreen",
@@ -174,6 +181,7 @@ def build_all() -> dict[str, str]:
 
     # Step 5: Compile and write Apple mobileconfig profile to disk
     profile_content = generate_webclip_profile()
+    # Side effect: overwrites ios_app/RuneLite.mobileconfig on every build.
     CONFIG_PATH.write_text(profile_content, encoding="utf-8")
 
     # Step 6: Compute SHA-256 checksums for cryptographic build auditing

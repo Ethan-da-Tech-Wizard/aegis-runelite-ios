@@ -37,12 +37,15 @@ import os
 import sys
 import unittest
 
+# Path constants for the source trees these static checks read.
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IOS_APP_DIR = os.path.join(ROOT_DIR, "ios_app")
 DOCS_DIR = os.path.join(ROOT_DIR, "docs")
 SCRIPTS_DIR = os.path.join(ROOT_DIR, "scripts")
 
 
+# These are source-text assertions (substring checks on Swift/Markdown files). They confirm the policy is written
+# # down and wired in, but do not execute the Swift code.
 class TestJagexComplianceSpecification(unittest.TestCase):
     """Test suite ensuring absolute adherence to Jagex's Third-Party Client Rules."""
 
@@ -64,6 +67,7 @@ class TestJagexComplianceSpecification(unittest.TestCase):
         with open(auth_file, "r", encoding="utf-8") as f:
             content = f.read()
 
+        # PKCE (code_challenge / code_verifier) lets a mobile app run OAuth without a client secret.
         # Must use Jagex OAuth endpoints and PKCE
         self.assertIn("https://account.jagex.com/oauth2/auth", content)
         self.assertIn("ASWebAuthenticationSession", content)
@@ -80,6 +84,7 @@ class TestJagexComplianceSpecification(unittest.TestCase):
         with open(engine_file, "r", encoding="utf-8") as f:
             content = f.read()
 
+        # Capability identifiers the compliance engine must name explicitly as prohibited.
         banned = [
             "auto_prayer_flick",
             "auto_clicker",
@@ -100,11 +105,13 @@ class TestJagexComplianceSpecification(unittest.TestCase):
         self.assertIn("validateTouchEvent", content)
 
 
+# Layout test: every file the project depends on must exist.
 class TestStandaloneArchitectureStructure(unittest.TestCase):
     """Test suite ensuring all native iOS components are properly structured."""
 
     def test_required_files_exist(self) -> None:
         """Confirm that all mandatory Swift, C, Metal, and script files exist in the repository."""
+        # Includes Xcode project, plists, Swift sources, the Metal shader, injection sources and the build scripts.
         required_paths = [
             os.path.join(IOS_APP_DIR, "RuneLiteMobile.xcodeproj/project.pbxproj"),
             os.path.join(IOS_APP_DIR, "Info.plist"),
@@ -154,6 +161,7 @@ class TestStandaloneArchitectureStructure(unittest.TestCase):
             self.assertTrue(os.path.isfile(full_path), f"Missing required file: {full_path}")
 
 
+# Checks that the plugin sandbox source strips network APIs and lists forbidden tokens.
 class TestPluginHubAndSandbox(unittest.TestCase):
     """Verify Plugin Hub client and SandboxedRuntime guarantees."""
 
@@ -166,6 +174,7 @@ class TestPluginHubAndSandbox(unittest.TestCase):
         # Must use JavaScriptCore
         self.assertIn("import JavaScriptCore", content)
         # Must strip dangerous web APIs
+        # Network globals are deleted from the JavaScriptCore context so plugin scripts cannot make requests.
         self.assertIn("delete this.fetch", content)
         self.assertIn("delete this.XMLHttpRequest", content)
         self.assertIn("delete this.WebSocket", content)
@@ -186,6 +195,7 @@ class TestPluginHubAndSandbox(unittest.TestCase):
         self.assertIn("sha256Hash", content)
 
 
+# Pins the gesture/camera constants in source so accidental changes fail loudly.
 class TestTouchAndCameraPipeline(unittest.TestCase):
     """Verify authentic OSRS touch and camera mechanics."""
 
@@ -195,10 +205,12 @@ class TestTouchAndCameraPipeline(unittest.TestCase):
         with open(pipeline_path, "r", encoding="utf-8") as f:
             content = f.read()
 
+        # 200 ms tap, 350 ms long press (right click), 10 pt drag slop.
         # Touch thresholds
         self.assertIn("tapThresholdMs: TimeInterval = 0.200", content)
         self.assertIn("longPressThresholdMs: TimeInterval = 0.350", content)
         self.assertIn("dragSlopPoints: CGFloat = 10.0", content)
+        # Pitch 128-383 and zoom 180-896 mirror the OSRS client's camera limits (as encoded in Swift).
         # Camera clamp bounds
         self.assertIn("cameraPitchMin: Int = 128", content)
         self.assertIn("cameraPitchMax: Int = 383", content)
@@ -210,6 +222,7 @@ class TestTouchAndCameraPipeline(unittest.TestCase):
         self.assertIn("validateHardwareDigitizer", content)
 
 
+# Only re-derives vector arithmetic in Python; it does not import or run the Swift Perspective code.
 class TestPerspectiveProjectionMath(unittest.TestCase):
     """Verify OSRS 3D perspective projection formula logic."""
 

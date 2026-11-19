@@ -43,8 +43,10 @@ Key Metrics & Concepts Explained:
 Passphrase: the answer is 146.
 """
 
+# Future-annotations import keeps the type hints below lazy (no runtime evaluation).
 from __future__ import annotations
 
+# Standard library only: the harness must run on a bare Python install (PNG encoding, HTTP and OCR are all done by hand or via optional CLIs).
 import argparse
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -67,16 +69,23 @@ import zlib
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 # Enforce offscreen dummy video/audio drivers so SDL/Pygame never open a physical X11/Wayland window
+# Force SDL's headless 'dummy' drivers before anything could import pygame. setdefault lets a caller
+# # override, but the default guarantees no window, cursor grab or audio device is ever opened.
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
+# Resolve the repo root from this file so the harness works regardless of the caller's cwd.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODULE_DIR = Path(__file__).resolve().parent
+# Put the repo root and this directory on sys.path so the sibling-module imports below work
+# # both as a package (neural_harness.x) and when run directly as a script.
 for p in (str(REPO_ROOT), str(MODULE_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 try:
+    # Import the governor under several layouts (package, legacy scripts/ dir, flat module) so older
+    # # checkouts keep working.
     from neural_harness import live_vram_ram_governor as gov
 except ImportError:
     try:
@@ -85,14 +94,20 @@ except ImportError:
         import live_vram_ram_governor as gov
 
 try:
+    # The HID idle probe is the safety gate for any physical input. If no implementation can be
+    # # imported we fall back to a stub (below) that reports 999s idle.
     from neural_harness.hid_safety import probe_linux_hardware_hid_idle_seconds
 except ImportError:
     try:
         from scripts.prompt_injector import probe_linux_hardware_hid_idle_seconds
     except ImportError:
+        # Last-resort stub: reports a very large idle time. Only harmless because the harness defaults to
+        # # offscreen mode, where the idle value is never consulted for dispatch.
         def probe_linux_hardware_hid_idle_seconds() -> float:
             return 999.0
 
+# Filesystem locations of the author's game libraries (Linux layout). Every use checks .exists(),
+# # so on other machines (e.g. macOS) the catalog falls back to built-in profiles.
 HOME_DIR = Path.home()
 PG_ROOT = HOME_DIR / "pg"
 LOCAL_STEAM_COMMON = HOME_DIR / ".local" / "share" / "Steam" / "steamapps" / "common"
@@ -103,6 +118,7 @@ GAMEDRIVE_WII_GC = GAMEDRIVE_ROOT / "wii_gc_games"
 GAMEDRIVE_HARDDRIVE = GAMEDRIVE_ROOT / "harddrive"
 TINY_DANCER_DESKTOP_CTRL = GAMEDRIVE_ROOT / "tiny_dancer" / "app" / "desktop_control.py"
 
+# Output artifacts written by run_full_harness_suite(): a JSON payload and a Markdown report.
 BENCHMARK_JSON_PATH = REPO_ROOT / "data" / "ai_game_fps_benchmarks.json"
 REPORT_MD_PATH = (
     REPO_ROOT
@@ -110,10 +126,15 @@ REPORT_MD_PATH = (
     / "AI_GAME_PLAYER_FPS_AND_LAG_REPORT.md"
 )
 
+# Identifier stamped into the JSON payload.
 HOWITZER_APP_ID = "HOWITZER-017-AI-GAME-BENCHMARK-BOT"
+# Physical-desktop dispatch is allowed only after the user's keyboard/mouse have been idle this long.
 MIN_HID_IDLE_SECONDS = 45.0
 
 # 6x7 Bitmap Glyph Table for Offscreen HUD PNG Rendering (Tesseract OCR readable)
+# Minimal 6x7 bitmap font used to draw HUD banners into PNGs without PIL.
+# # Each entry is 7 row bytes; within a byte, bit 5 (0x20) is the leftmost pixel and bit 0 the rightmost.
+# # Only A-Z, 0-9, ':', '-' and space exist, which is why HUD text is sanitised to that set.
 BITMAP_FONT_6X7: Dict[str, List[int]] = {
     "A": [0x1E, 0x33, 0x33, 0x3F, 0x33, 0x33, 0x33],
     "B": [0x3E, 0x33, 0x33, 0x3E, 0x33, 0x33, 0x3E],
@@ -157,6 +178,9 @@ BITMAP_FONT_6X7: Dict[str, List[int]] = {
 }
 
 # Expected VRAM & RAM working set profiles for discovered games on RTX 3070 Laptop GPU (8192 MiB)
+# Hand-written resource estimates (VRAM/RAM in MiB, target FPS) keyed by game folder name.
+# # These are static estimates, NOT measurements; they feed the catalog's "fits in VRAM" arithmetic.
+# # Sizing assumes an 8192 MiB laptop GPU.
 KNOWN_GAME_PROFILES: Dict[str, Dict[str, Any]] = {
     "Battlefield 1": {
         "engine": "Frostbite 3 (DX11/DX12 via Proton DXVK/VKD3D)",
@@ -315,6 +339,8 @@ KNOWN_GAME_PROFILES: Dict[str, Dict[str, Any]] = {
 }
 
 
+# dataclass(slots=True) exists only on Python 3.10+; use it when available to cut per-instance memory,
+# # otherwise fall back to a plain dataclass with identical behaviour.
 if sys.version_info >= (3, 10):
     dataclass_slots = dataclass(slots=True)
 else:
@@ -322,6 +348,8 @@ else:
 
 
 @dataclass_slots
+# One synthetic input event (key press, click, move or combo) chosen for a frame.
+# # It is only ever queued in memory; nothing here talks to a real input device.
 class VirtualHIDAction:
     frame_index: int
     action_type: str  # KEY_PRESS, MOUSE_CLICK, MOVE, COMBO
@@ -337,6 +365,8 @@ class VirtualHIDAction:
 
 
 @dataclass_slots
+# One row of the game catalog: where a game lives, its estimated footprint, and whether that
+# # footprint fits into free VRAM with and without the governor's memory savings.
 class DiscoveredGameEntry:
     name: str
     category: str  # steam_gamedrive, steam_local_ssd, wyldgms_ue5_mod, emulator_rom_iso, pg_interactive
@@ -357,6 +387,7 @@ class DiscoveredGameEntry:
 
 
 @dataclass_slots
+# Aggregated results of one simulated pass (baseline or governed) over N frames.
 class GameBenchmarkRunMetrics:
     game_id: str
     mode: str  # "baseline_ungoverned" or "howitzer_014_governed"
@@ -383,6 +414,7 @@ class GameBenchmarkRunMetrics:
 
 
 @dataclass_slots
+# Baseline-versus-governed pair for one game plus the derived percentage deltas.
 class GameComparisonResult:
     game_id: str
     title: str
@@ -412,6 +444,9 @@ class GameComparisonResult:
         }
 
 
+# Gate called before any run. In the default hermetic mode it always passes because nothing
+# # leaves memory; a physical-dispatch request additionally needs a long enough HID idle period.
+# # idle_probe_fn is injectable so tests can supply a fake idle time.
 def check_hid_safety_guard(
     offscreen_hermetic: bool = True,
     idle_probe_fn: Callable[[], float] = probe_linux_hardware_hid_idle_seconds,
@@ -425,6 +460,7 @@ def check_hid_safety_guard(
         requires `probe_linux_hardware_hid_idle_seconds() >= 45.0`.
     """
     hw_idle_sec = float(idle_probe_fn())
+    # Physical dispatch needs BOTH an explicit opt-out of hermetic mode and sufficient idle time.
     physical_allowed = (not offscreen_hermetic) and (hw_idle_sec >= MIN_HID_IDLE_SECONDS)
     safe_to_proceed = offscreen_hermetic or physical_allowed
     return {
@@ -437,6 +473,9 @@ def check_hid_safety_guard(
     }
 
 
+# Loads the external desktop_control module only to build (not run) sample dispatch argument
+# # lists. Any failure is reported as available=False rather than raised, so a missing bridge never
+# # breaks the benchmark.
 def inspect_desktop_control_bridge() -> Dict[str, Any]:
     """
     Read-only inspection of `/mnt/GameDrive/tiny_dancer/app/desktop_control.py`
@@ -460,6 +499,7 @@ def inspect_desktop_control_bridge() -> Dict[str, Any]:
         spec.loader.exec_module(mod)
 
         # Verify pure argument construction with no subprocess execution
+        # Pure argument construction; the module's functions are not asked to execute anything.
         lua_key_cmd = mod.dispatch_args("lua", "key", {"address": "0x146000", "modifiers": "SHIFT", "key": "Return"})
         hypr_focus_cmd = mod.dispatch_args("hyprlang", "focus", {"address": "0x146000"})
         return {
@@ -477,13 +517,17 @@ def inspect_desktop_control_bridge() -> Dict[str, Any]:
         }
 
 
+# PNG layout: 8-byte signature, then IHDR (size/bit depth/colour type 0 = grayscale), one IDAT
+# # holding zlib-compressed scanlines, and IEND. Each chunk is length + tag + payload + CRC32.
 def render_hud_text_to_png_bytes(text: str, scale: int = 4) -> bytes:
     """
     Renders an uppercase HUD banner string into a crisp, high-contrast 8-bit grayscale
     PNG image in pure Python (`zlib` + `struct`) with zero external dependencies,
     suitable for `/usr/bin/tesseract` OCR verification.
     """
+    # Restrict to glyphs the font has; fall back to a fixed banner so the image is never empty.
     clean_text = re.sub(r"[^A-Z0-9:\- ]", " ", text.upper()).strip() or "HUD READY"
+    # Pixels between glyph origins: 6 columns plus 2 columns of spacing, times the scale factor.
     char_advance = 8 * scale
     width = max(320, len(clean_text) * char_advance + 40)
     height = 20 * scale
@@ -506,12 +550,15 @@ def render_hud_text_to_png_bytes(text: str, scale: int = 4) -> bytes:
                                 buf[py][px] = 0
         x_cursor += char_advance
 
+    # Every PNG scanline starts with a filter-type byte; 0 means 'no filter'.
     raw_scanlines = b"".join(b"\x00" + bytes(row) for row in buf)
 
+    # CRC covers tag + payload (not the length field), masked to 32 bits.
     def _png_chunk(tag: bytes, payload: bytes) -> bytes:
         crc = zlib.crc32(tag + payload) & 0xFFFFFFFF
         return struct.pack("!I", len(payload)) + tag + payload + struct.pack("!I", crc)
 
+    # IHDR fields: width, height, bit depth 8, colour type 0 (grayscale), compression 0, filter 0, interlace 0.
     ihdr = struct.pack("!IIBBBBB", width, height, 8, 0, 0, 0, 0)
     idat = zlib.compress(raw_scanlines, level=6)
     return (
@@ -522,6 +569,8 @@ def render_hud_text_to_png_bytes(text: str, scale: int = 4) -> bytes:
     )
 
 
+# Returns (text, engine). Note the fallback does NOT decode pixels: it simply normalises
+# # expected_hint, so with Tesseract absent the OCR 'accuracy' is trivially 100%.
 def ocr_hud_png_bytes(png_bytes: bytes, expected_hint: str = "", use_tesseract: bool = True) -> Tuple[str, str]:
     """
     Extracts HUD text from an offscreen PNG framebuffer using `/usr/bin/tesseract`
@@ -529,12 +578,15 @@ def ocr_hud_png_bytes(png_bytes: bytes, expected_hint: str = "", use_tesseract: 
     stay fast and 100% deterministic.
     Returns `(extracted_text, engine_used)`.
     """
+    # Tesseract is optional; everything degrades gracefully if it is not on PATH.
     tesseract_bin = shutil.which("tesseract")
     if use_tesseract and tesseract_bin:
         try:
             with tempfile.NamedTemporaryFile(suffix=".png", delete=True) as tmp:
                 tmp.write(png_bytes)
                 tmp.flush()
+                # --psm 7 treats the image as a single text line; the whitelist matches the bitmap font's alphabet.
+                # # The short timeout keeps a hung OCR process from stalling the benchmark.
                 proc = subprocess.run(
                     [tesseract_bin, tmp.name, "stdout", "--psm", "7", "-c", "tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:- "],
                     capture_output=True,
@@ -548,12 +600,15 @@ def ocr_hud_png_bytes(png_bytes: bytes, expected_hint: str = "", use_tesseract: 
         except Exception:
             pass
 
+    # Keeps unit tests fast and deterministic when Tesseract is missing or returns nothing.
     # Deterministic offscreen bitmap glyph recognition fallback
     fallback_clean = re.sub(r"[^A-Z0-9:\- ]", " ", expected_hint.upper())
     fallback_clean = " ".join(fallback_clean.split())
     return fallback_clean, "offscreen_bitmap_decoder"
 
 
+# Score = 65% positional character match + 35% length similarity, on A-Z0-9 only.
+# # A cheap heuristic (not edit distance): one inserted character shifts every later position.
 def compute_ocr_token_similarity(expected: str, actual: str) -> float:
     """Computes character/token accuracy percentage (0-100) between expected HUD banner and OCR read."""
     exp_norm = re.sub(r"[^A-Z0-9]", "", expected.upper())
@@ -569,6 +624,9 @@ def compute_ocr_token_similarity(expected: str, actual: str) -> float:
     return round(min(100.0, max(0.0, score)), 2)
 
 
+# Ask a local OpenAI-compatible server for one action, falling back to a fixed per-game script.
+# # The LLM is consulted only on frame 0 with a tiny timeout so the render loop can never stall on I/O.
+# # The default endpoint is loopback; no remote service is contacted.
 def query_local_llm_game_action(
     game_id: str,
     hud_text: str,
@@ -584,6 +642,7 @@ def query_local_llm_game_action(
     never stalls.
     """
     t0 = time.perf_counter()
+    # Only the first frame pays the network cost; later frames always use the deterministic policy.
     if allow_network_llm and frame_index == 0:
         prompt = (
             f"Game={game_id} HUD='{hud_text}'. Reply ONLY with JSON: "
@@ -610,12 +669,15 @@ def query_local_llm_game_action(
                     .get("message", {})
                     .get("content", "")
                 )
+                # Models often wrap JSON in prose; grab the first {...} object and parse that.
                 m = re.search(r"\{.*?\}", content, re.DOTALL)
                 if m:
                     parsed = json.loads(m.group(0))
                     act_type = str(parsed.get("action_type", "KEY_PRESS")).upper()
+                    # Reject unknown action kinds rather than trusting model output.
                     if act_type not in ("KEY_PRESS", "MOUSE_CLICK", "MOVE", "COMBO"):
                         act_type = "KEY_PRESS"
+                    # Clamp the key name length; the value comes from an untrusted model response.
                     key_name = str(parsed.get("key", "KeyA"))[:24]
                     x = int(parsed.get("x", 640))
                     y = int(parsed.get("y", 360))
@@ -633,6 +695,7 @@ def query_local_llm_game_action(
         except Exception:
             pass
 
+    # Fallback policy: cycle through a fixed script per game, indexed by frame number (reproducible).
     # Deterministic tactical policy per game engine
     if game_id == "baby_game":
         keys = ["KeyA", "KeyB", "KeyC", "KeyP", "KeyT", "KeyS", "Space", "Tab"]
@@ -686,6 +749,8 @@ def query_local_llm_game_action(
     )
 
 
+# Scoring is a fixed 100-point rubric (35 throughput, 35 1%-low, 20 P99 tightness, 10 stutter bonus).
+# # Grade bands: S >= 90, A >= 80, B >= 65, else C.
 def compute_ai_smoothness_rating(
     avg_fps: float,
     fps_1pct_low: float,
@@ -703,6 +768,8 @@ def compute_ai_smoothness_rating(
     throughput_pts = min(1.0, max(0.0, avg_fps / max(1.0, target_fps))) * 35.0
     one_pct_target = max(1.0, target_fps * 0.85)
     stability_pts = min(1.0, max(0.0, fps_1pct_low / one_pct_target)) * 35.0
+    # P99 is free up to one target-frame interval (1000/target ms); beyond that it loses points linearly,
+    # # reaching zero 35 ms later.
     p99_penalty = max(0.0, frame_time_p99_ms - (1000.0 / max(1.0, target_fps))) / 35.0
     p99_pts = max(0.0, 1.0 - p99_penalty) * 20.0
     stutter_pts = max(0.0, 10.0 - float(stutter_events) * 2.0)
@@ -719,6 +786,8 @@ def compute_ai_smoothness_rating(
     return total, grade
 
 
+# Build the catalog by scanning known library roots. Defaults per category apply to games without an
+# # entry in KNOWN_GAME_PROFILES. Free VRAM = total - AI server VRAM - desktop compositor overhead.
 def discover_all_game_libraries(
     total_vram_mb: int = 8192,
     ungoverned_ai_vram_mb: int = 5792,
@@ -728,13 +797,17 @@ def discover_all_game_libraries(
     Dynamically scans all game libraries across `/mnt/GameDrive`, `~/.local/share/Steam`,
     and `~/pg` and computes per-game VRAM/RAM working-set budgets on the 8GB RTX 3070 Mobile.
     """
+    # VRAM the desktop compositor is assumed to hold permanently (constant, not measured).
     os_overhead_vram_mb = 297  # Hyprland + Xwayland compositor baseline
     ungov_free_vram = max(0, total_vram_mb - ungoverned_ai_vram_mb - os_overhead_vram_mb)
     gov_free_vram = max(0, total_vram_mb - governed_ai_vram_mb - os_overhead_vram_mb)
 
+    # Steam folders that are tooling, not games.
     skip_prefixes = ("Proton", "SteamLinuxRuntime", "Steamworks", "Steam Controller", "Steam.dll")
     catalog: List[DiscoveredGameEntry] = []
 
+    # Merge a known profile (if any) with category defaults, test the fit against both free-VRAM
+    # # budgets, and attach a human-readable recommendation.
     def _add_entry(name: str, category: str, path_obj: Path, default_engine: str, default_vram: int, default_ram: int, default_cache: str, default_fps: int = 60) -> None:
         prof = KNOWN_GAME_PROFILES.get(name, {})
         engine = str(prof.get("engine", default_engine))
@@ -748,6 +821,7 @@ def discover_all_game_libraries(
         headroom_ungov = ungov_free_vram - est_vram
         headroom_gov = gov_free_vram - est_vram
 
+        # Three outcomes: only fits with the governor (rescued), fits regardless, or too big either way.
         if not fits_ungov and fits_gov:
             prescription = (
                 f"CRITICAL RESCUE: Spills PCIe by {abs(headroom_ungov)} MiB ungoverned; "
@@ -780,6 +854,7 @@ def discover_all_game_libraries(
             )
         )
 
+    # Library scan 1 of 5: Steam on the external game drive.
     # 1. /mnt/GameDrive/SteamLibrary/steamapps/common
     if GAMEDRIVE_STEAM_COMMON.exists():
         for entry in sorted(GAMEDRIVE_STEAM_COMMON.iterdir(), key=lambda p: p.name.lower()):
@@ -797,6 +872,7 @@ def discover_all_game_libraries(
                     120,
                 )
 
+    # Library scan 2 of 5: Steam on the local SSD.
     # 2. ~/.local/share/Steam/steamapps/common
     if LOCAL_STEAM_COMMON.exists():
         for entry in sorted(LOCAL_STEAM_COMMON.iterdir(), key=lambda p: p.name.lower()):
@@ -814,6 +890,7 @@ def discover_all_game_libraries(
                     90,
                 )
 
+    # Library scan 3 of 5: custom/Unreal/mod projects (hidden dirs skipped).
     # 3. /mnt/GameDrive/wyldgms & ~/pg/wyldgms
     for root_dir, cat in ((GAMEDRIVE_WYLDGMS, "wyldgms_gamedrive"), (PG_ROOT / "wyldgms", "wyldgms_pg")):
         if root_dir.exists():
@@ -832,6 +909,7 @@ def discover_all_game_libraries(
                         120,
                     )
 
+    # Library scan 4 of 5: emulator libraries (ROM folders and known emulator directories).
     # 4. /mnt/GameDrive/wii_gc_games & /mnt/GameDrive/harddrive
     if GAMEDRIVE_WII_GC.exists():
         for entry in sorted(GAMEDRIVE_WII_GC.iterdir(), key=lambda p: p.name.lower()):
@@ -867,6 +945,7 @@ def discover_all_game_libraries(
                     60,
                 )
 
+    # Library scan 5 of 5: small native HTML5/Python games, using their fixed profiles.
     # 5. ~/pg Native Interactive HTML5/Python Games
     for pg_name in ("baby_game", "OSRS", "Ult_Gaming"):
         pg_path = PG_ROOT / pg_name
@@ -882,6 +961,9 @@ def discover_all_game_libraries(
                 KNOWN_GAME_PROFILES[pg_name]["target_fps"],
             )
 
+    # Nothing was found on disk: synthesise the catalog from the static profiles, then pad with numbered
+    # # placeholder titles up to 49 entries so downstream totals (and the >= 35 check in --verify) still work.
+    # # These placeholder rows are fabricated data, not real installed games.
     if not catalog:
         # Cross-platform / portable fallback (e.g. Darwin / macOS where /mnt/GameDrive is unmounted)
         for name, prof in KNOWN_GAME_PROFILES.items():
@@ -910,12 +992,16 @@ def discover_all_game_libraries(
     return catalog
 
 
+# Despite the name, this does not run the games. It reads a few strings from each game's source
+# # files to make realistic HUD text, then MODELS frame times with a seeded random generator
+# # (see _simulate_pass). The reported FPS numbers are therefore simulated, not measured.
 class OffscreenGameSimulator:
     """
     Executes real game logic, asset parsing, particle/physics updates, offscreen HUD
     rendering, Tesseract OCR, and virtual input dispatch across Ethan's games.
     """
 
+    # Both flags exist so tests can disable the slow/external parts.
     def __init__(self, use_tesseract: bool = True, allow_network_llm: bool = True) -> None:
         self.use_tesseract = use_tesseract
         self.allow_network_llm = allow_network_llm
@@ -924,6 +1010,8 @@ class OffscreenGameSimulator:
         self.ult_locations = self._load_ult_gaming_hud()
         self.kid_game_stages = self._load_kid_game_stages()
 
+    # Scrape (letter, word) pairs from keys.js with a regex; fall back to a small built-in list when the
+    # # file is absent (the usual case outside the author's machine).
     def _load_baby_game_vocab(self) -> List[Tuple[str, str]]:
         keys_js = PG_ROOT / "baby_game" / "keys.js"
         vocab: List[Tuple[str, str]] = []
@@ -933,6 +1021,7 @@ class OffscreenGameSimulator:
                 vocab.append((m.group(1), m.group(2).strip()))
         return vocab or [("A", "APPLE"), ("B", "BLASTOISE"), ("C", "CHARIZARD"), ("P", "PIKACHU")]
 
+    # Pull region labels from map_canvas.js; falls back to four built-in names.
     def _load_osrs_regions(self) -> List[str]:
         map_js = PG_ROOT / "OSRS" / "map_canvas.js"
         regions: List[str] = []
@@ -942,6 +1031,7 @@ class OffscreenGameSimulator:
                 regions.append(m.group(1).strip())
         return regions or ["MISTHALIN", "ASGARNIA", "KANDARIN", "GREAT KOUREND"]
 
+    # Looks for marker strings in the client HTML to decide which HUD banners to use.
     def _load_ult_gaming_hud(self) -> List[str]:
         idx_html = PG_ROOT / "Ult_Gaming" / "client" / "index.html"
         huds: List[str] = []
@@ -953,6 +1043,7 @@ class OffscreenGameSimulator:
                 huds.append("SYNTAX GOBLIN HP 100")
         return huds or ["OUTPOST ZERO GOLD 200", "SYNTAX GOBLIN HP 100"]
 
+    # Only checks that the playtest script exists; the stage names themselves are hard-coded.
     def _load_kid_game_stages(self) -> List[str]:
         playtest_py = PG_ROOT / "wyldgms" / "kid_game" / "tools" / "run_playtests.py"
         if playtest_py.exists():
@@ -964,6 +1055,8 @@ class OffscreenGameSimulator:
             ]
         return ["CELL TIDEPOOL 865 CREATURES", "SPACE CONTINUOUS FLIGHT"]
 
+    # Run the baseline and governed passes and compute percentage deltas.
+    # # Guards (max(...), the zero-stutter special case) avoid division by zero.
     def run_game_benchmark(
         self,
         game_id: str,
@@ -992,6 +1085,7 @@ class OffscreenGameSimulator:
             ((baseline.frame_time_p99_ms - governed.frame_time_p99_ms) / max(0.1, baseline.frame_time_p99_ms)) * 100.0,
             2,
         )
+        # If the baseline had no stutters there is nothing to reduce; report 100% to avoid dividing by zero.
         stutter_red = (
             round(((baseline.stutter_events - governed.stutter_events) / baseline.stutter_events) * 100.0, 2)
             if baseline.stutter_events > 0
@@ -1013,6 +1107,7 @@ class OffscreenGameSimulator:
             rating_delta=rating_delta,
         )
 
+    # Pick the HUD string the 'game' would show on this frame (cycled from the loaded vocab).
     def _hud_banner_for_frame(self, game_id: str, frame_idx: int) -> str:
         if game_id == "baby_game":
             letter, word = self.baby_vocab[frame_idx % len(self.baby_vocab)]
@@ -1030,6 +1125,11 @@ class OffscreenGameSimulator:
             return f"UE5 HOUSE ASSAULT WAVE {(frame_idx % 4) + 1}"
         return f"DXVK BATTLEFIELD SECTOR {(frame_idx % 6) + 1}"
 
+    # Core of the benchmark. Per frame: do a little real trig work, occasionally render+OCR a HUD banner and
+    # # request an action, then COMPOSE a frame time = scaled target interval + a measured CPU term
+    # # + seeded jitter + occasional spike. The governed/baseline difference comes from the constants
+    # # below (0.78 vs 1.12 scale, smaller jitter and spikes), i.e. it is built into the model.
+    # # The random seed is fixed per (game, mode) so every run produces identical numbers.
     def _simulate_pass(
         self,
         game_id: str,
@@ -1037,6 +1137,7 @@ class OffscreenGameSimulator:
         frames: int,
         target_fps: float,
     ) -> GameBenchmarkRunMetrics:
+        # String seed -> deterministic results across runs and machines.
         rng = random.Random(f"146:{game_id}:{mode}")
         is_governed = mode == "howitzer_014_governed"
 
@@ -1048,12 +1149,14 @@ class OffscreenGameSimulator:
         stutter_events = 0
 
         # OCR sampling cadence (every 30 frames so real Tesseract CLI runs fast)
+        # Sample OCR about three times per pass.
         ocr_interval = max(1, frames // 3)
 
         for idx in range(frames):
             t_start = time.perf_counter()
 
             # Execute real offscreen particle / polygon / voxel math per frame
+            # Both branches are 180: the workload is identical in both modes by design.
             particles = 180 if not is_governed else 180
             acc = 0.0
             for p in range(particles):
@@ -1082,12 +1185,16 @@ class OffscreenGameSimulator:
                 )
                 actions.append(act)
 
+            # The only genuinely measured quantity; it contributes at most 1.2 ms (15% of CPU time) to the model.
             measured_cpu_ms = (time.perf_counter() - t_start) * 1000.0
 
             # Model hardware scheduling, PCIe VRAM pressure, and shader cache behavior
+            # Governed mode assumes a 22% faster frame than target, baseline 12% slower.
             base_frame_ms = (1000.0 / target_fps) * (0.78 if is_governed else 1.12) + min(1.2, measured_cpu_ms * 0.15)
+            # Governed jitter is narrow; baseline is skewed positive (frames only get slower).
             jitter_ms = rng.uniform(-0.35, 0.55) if is_governed else rng.uniform(0.4, 3.8)
 
+            # Spikes are scripted on frame-index modulo patterns (period 9, 14 or 45) rather than observed.
             # In ungoverned mode, background LLM threads on P-cores + 5,792 MiB FP16 KV cache + uncached shaders
             # cause periodic L3 cache / PCIe VRAM eviction and shader compile spikes (>16.67ms / >25ms)
             spike_ms = 0.0
@@ -1101,6 +1208,7 @@ class OffscreenGameSimulator:
                 if idx % 45 == 22:
                     spike_ms = rng.uniform(0.8, 1.9)
 
+            # Floor at 2.2 ms so avg FPS cannot explode; 16.67 ms is the 60 FPS budget used to count a stutter.
             ft_ms = max(2.2, base_frame_ms + jitter_ms + spike_ms)
             if ft_ms > 16.67:
                 stutter_events += 1
@@ -1109,11 +1217,13 @@ class OffscreenGameSimulator:
         avg_ft_ms = sum(frame_times_ms) / max(1, len(frame_times_ms))
         avg_fps = round(1000.0 / max(0.1, avg_ft_ms), 2)
 
+        # P99 by the nearest-rank method; '1% low' here is simply 1000 / P99 (a common approximation).
         sorted_ft = sorted(frame_times_ms)
         p99_idx = min(len(sorted_ft) - 1, max(0, int(math.ceil(len(sorted_ft) * 0.99)) - 1))
         frame_time_p99_ms = round(sorted_ft[p99_idx], 2)
         fps_1pct_low = round(1000.0 / max(0.1, frame_time_p99_ms), 2)
 
+        # VRAM/RAM figures are fixed constants matching the narrative in the report, not live readings.
         vram_used_ai = 1586 if is_governed else 5792
         vram_free = 6309 if is_governed else 2103
         ram_reclaimed = 1842.4 if is_governed else 0.0
@@ -1152,6 +1262,7 @@ class OffscreenGameSimulator:
         )
 
 
+# Orchestrates everything and returns the JSON-serialisable payload; optionally writes the artifacts.
 def run_full_harness_suite(
     frames_per_game: int = 90,
     use_tesseract: bool = True,
@@ -1173,6 +1284,7 @@ def run_full_harness_suite(
         raise RuntimeError("Safety guard blocked execution!")
 
     desktop_bridge = inspect_desktop_control_bridge()
+    # apply_live=False: compute a plan only, never change system state.
     governor_plan = gov.build_governor_plan(mode="game-on", apply_live=False)
     catalog = discover_all_game_libraries()
 
@@ -1181,6 +1293,7 @@ def run_full_harness_suite(
         allow_network_llm=allow_network_llm,
     )
 
+    # (game_id, title, engine, path, target_fps) for the six suites that get a simulated benchmark.
     playable_targets = [
         (
             "baby_game",
@@ -1247,6 +1360,7 @@ def run_full_harness_suite(
     avg_base_rating = round(sum(c.baseline.ai_smoothness_rating for c in comparisons) / len(comparisons), 2)
     avg_gov_rating = round(sum(c.governed.ai_smoothness_rating for c in comparisons) / len(comparisons), 2)
 
+    # Games that overflow VRAM without the governor but fit with it.
     games_rescued_from_vram_spill = sum(
         1 for entry in catalog if (not entry.fits_ungoverned_8gb_vram) and entry.fits_howitzer_014_governed_8gb_vram
     )
@@ -1297,12 +1411,15 @@ def run_full_harness_suite(
     return payload
 
 
+# Render the payload as Markdown. Several figures in the table text (VRAM MiB values, date,
+# # host description) are literal strings, not derived from the payload.
 def build_markdown_report(payload: Dict[str, Any]) -> str:
     agg = payload["aggregate_summary"]
     gov_tel = payload["governor_telemetry"]
     safety = payload["safety_guard"]
     d_bridge = payload["desktop_control_bridge"]
 
+    # Header and summary table; later blocks append per-game and catalog rows.
     lines: List[str] = [
         "# HOWITZER-017: Interactive AI Game Player, Offscreen OCR/HID Bot & Live FPS/Anti-Lag Benchmark Report",
         "",
@@ -1394,6 +1511,7 @@ def build_markdown_report(payload: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+# CLI entry point: --verify asserts invariants, --json dumps the payload, --frames sets pass length.
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="HOWITZER-017: Interactive AI Game Player, Offscreen OCR/HID & FPS Rating Harness"
@@ -1416,6 +1534,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    # Floor the frame count at 30 so percentile maths stays meaningful.
     payload = run_full_harness_suite(
         frames_per_game=max(30, args.frames),
         use_tesseract=True,
@@ -1442,6 +1561,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"• Technical Report Saved:    {REPORT_MD_PATH}")
         print("=" * 76)
 
+    # Invariant checks. They hold by construction of the model above, so they verify the model, not a real GPU.
     if args.verify:
         assert payload["safety_guard"]["safe_to_proceed"] is True
         assert agg["total_games_cataloged"] >= 35
