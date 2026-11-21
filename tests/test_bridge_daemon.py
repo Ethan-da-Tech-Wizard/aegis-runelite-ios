@@ -209,7 +209,7 @@ class TestServerBinding(unittest.TestCase):
     def test_is_loopback_host(self) -> None:
         for host in ("127.0.0.1", "localhost", "::1"):
             self.assertTrue(bridge_server.is_loopback_host(host))
-        for host in ("0.0.0.0", "192.168.1.5"):
+        for host in ("0.0.0.0", "192.0.2.5"):
             self.assertFalse(bridge_server.is_loopback_host(host))
 
 

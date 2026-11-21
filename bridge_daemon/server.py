@@ -86,7 +86,7 @@ def get_local_ip() -> str:
         None.
 
     Returns:
-        str: The IPv4 address string (e.g., '192.168.1.50'), or '127.0.0.1' on error.
+        str: The IPv4 address string (e.g., '192.0.2.50'), or '127.0.0.1' on error.
     """
     # Step 1: Create a UDP socket (AF_INET = IPv4, SOCK_DGRAM = Datagram/UDP)
     # SOCK_DGRAM + connect() never sends a packet; it only makes the kernel choose a route/source address.

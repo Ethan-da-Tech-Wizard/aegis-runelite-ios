@@ -1523,7 +1523,7 @@ def build_markdown_report(payload: Dict[str, Any]) -> str:
         "",
         "---",
         "",
-        f"## 3. Complete Multi-Engine Game Catalog Across `/mnt/GameDrive`, `Steam`, and `/home/ethan/pg` (`{agg['total_games_cataloged']}` Entries)",
+        f"## 3. Complete Multi-Engine Game Catalog Across `/mnt/GameDrive`, `Steam`, and `~/pg` (`{agg['total_games_cataloged']}` Entries)",
         "",
         "| Game / Project | Category | Engine / Runtime | Est. VRAM / RAM | Fits Ungoverned (`2,103 MiB` Free)? | Fits Governed (`6,309 MiB` Free)? | HOWITZER-014 Anti-Lag Prescription |",
         "|---|---|---|---:|---|---|---|",
